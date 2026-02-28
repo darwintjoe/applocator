@@ -361,19 +361,15 @@ body.dark {
 <!-- CONFIG MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <h2>MongoDB Atlas Config</h2>
+    <h2>Cloudflare Worker Config</h2>
     <div class="modal-sub">Direct connection — no server needed</div>
     <div class="fg">
-      <label>Atlas App ID</label>
-      <input type="text" id="cfg-appid" placeholder="your-app-id-abcde">
+      <label>Worker URL</label>
+      <input type="url" id="cfg-url" placeholder="https://pos-coverage.your-name.workers.dev">
     </div>
     <div class="fg">
-      <label>Data API Key</label>
-      <input type="password" id="cfg-key" placeholder="your-data-api-key">
-    </div>
-    <div class="fg">
-      <label>Database Name</label>
-      <input type="text" id="cfg-db" placeholder="pos_analytics">
+      <label>Dashboard API Key</label>
+      <input type="password" id="cfg-key" placeholder="your-dashboard-secret-key">
     </div>
     <div class="modal-actions">
       <button class="btn-sec" onclick="closeModal()">Cancel</button>
@@ -415,73 +411,42 @@ let tileLayer = L.tileLayer(isDark ? TILES.dark : TILES.light, {
 applyTheme();
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
-let ATLAS_APP_ID = localStorage.getItem('pos_appid') || '';
-let ATLAS_KEY    = localStorage.getItem('pos_atlaskey') || '';
-let ATLAS_DB     = localStorage.getItem('pos_db') || 'pos_analytics';
+let WORKER_URL = localStorage.getItem('pos_worker_url') || '';
+let DASH_KEY   = localStorage.getItem('pos_dash_key')   || '';
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
 const DOT_ZOOM   = 11;
-const OFFLINE_MS = 75 * 60 * 1000;  // 75 min = 1 hour cycle + 15 min tolerance
+const OFFLINE_MS = 75 * 60 * 1000;  // 75 min = 1hr cycle + 15min tolerance
 let heatLayer    = null;
 let dotGroup     = null;
 let allPoints    = [];
 let currentFilter= 'all';
 
-// ── ATLAS DATA API HELPER ──────────────────────────────────────────────────────
-async function atlasFind(filter = {}, projection = {}, limit = 5000) {
-  const res = await fetch(
-    `https://data.mongodb-api.com/app/${ATLAS_APP_ID}/endpoint/data/v1/action/find`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'api-key': ATLAS_KEY },
-      body: JSON.stringify({
-        dataSource: 'Cluster0',
-        database:   ATLAS_DB,
-        collection: 'devices',
-        filter, projection, limit,
-      })
-    }
-  );
-  if (!res.ok) throw new Error('Atlas ' + res.status);
-  const data = await res.json();
-  return data.documents || [];
-}
-
 // ── FETCH ──────────────────────────────────────────────────────────────────────
 async function fetchAll() {
-  if (!ATLAS_APP_ID || !ATLAS_KEY) { loadDemo(); return; }
+  if (!WORKER_URL) { loadDemo(); return; }
   try {
-    // Fetch all devices (one doc per device, tiny payload)
-    const docs = await atlasFind({}, {
-      device_id:1, store_name:1, latitude:1, longitude:1,
-      city:1, last_ping:1, first_seen:1, _id:0
-    });
+    const headers = { 'x-api-key': DASH_KEY };
+    const base    = WORKER_URL.replace(/\/$/,'');
 
-    if (!docs.length) { loadDemo(); return; }
+    const [stats, devices] = await Promise.all([
+      fetch(base + '/stats',   { headers }).then(r => { if(!r.ok) throw new Error('stats '+r.status); return r.json(); }),
+      fetch(base + '/devices', { headers }).then(r => { if(!r.ok) throw new Error('devices '+r.status); return r.json(); }),
+    ]);
 
-    const now      = Date.now();
-    const d30      = new Date(now - 30 * 86400000);
-    let online=0, newMonth=0;
+    renderStats(stats);
 
-    allPoints = docs
-      .filter(d => d.latitude && d.longitude)
-      .map(d => {
-        const lastPingMs  = new Date(d.last_ping?.$date || d.last_ping).getTime();
-        const firstSeenMs = new Date(d.first_seen?.$date || d.first_seen).getTime();
-        const isOnline    = (now - lastPingMs) < OFFLINE_MS;
-        const daysSince   = (now - lastPingMs) / 86400000;
-        const status      = daysSince <= 30 ? 'active' : daysSince <= 60 ? 'risk' : 'churned';
-        if (isOnline) online++;
-        if (firstSeenMs >= d30) newMonth++;
-        return {
-          lat: d.latitude, lng: d.longitude,
-          is_online: isOnline, status,
-          device_id: d.device_id, store_name: d.store_name,
-          city: d.city, last_ping: d.last_ping?.$date || d.last_ping,
-        };
-      });
+    const now = Date.now();
+    allPoints = devices.map(d => ({
+      lat:       d.latitude,
+      lng:       d.longitude,
+      is_online: (now - new Date(d.last_ping).getTime()) < OFFLINE_MS,
+      status:    d.status,
+      device_id: d.device_id,
+      store_name:d.store_name,
+      last_ping: d.last_ping,
+    }));
 
-    renderStats({ total: docs.length, online, new_this_month: newMonth });
     updateMapLayer();
     setSyncBadge('Synced ' + new Date().toLocaleTimeString());
   } catch(e) {
@@ -605,19 +570,16 @@ function loadDemo() {
 
 // ── MODAL ──────────────────────────────────────────────────────────────────────
 function openModal() {
-  document.getElementById('cfg-appid').value = ATLAS_APP_ID;
-  document.getElementById('cfg-key').value   = ATLAS_KEY;
-  document.getElementById('cfg-db').value    = ATLAS_DB;
+  document.getElementById('cfg-url').value = WORKER_URL;
+  document.getElementById('cfg-key').value = DASH_KEY;
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 function saveConfig() {
-  ATLAS_APP_ID = document.getElementById('cfg-appid').value.trim();
-  ATLAS_KEY    = document.getElementById('cfg-key').value.trim();
-  ATLAS_DB     = document.getElementById('cfg-db').value.trim() || 'pos_analytics';
-  localStorage.setItem('pos_appid',    ATLAS_APP_ID);
-  localStorage.setItem('pos_atlaskey', ATLAS_KEY);
-  localStorage.setItem('pos_db',       ATLAS_DB);
+  WORKER_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  DASH_KEY   = document.getElementById('cfg-key').value.trim();
+  localStorage.setItem('pos_worker_url', WORKER_URL);
+  localStorage.setItem('pos_dash_key',   DASH_KEY);
   closeModal();
   fetchAll();
 }
