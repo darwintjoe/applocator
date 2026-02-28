@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Coverage Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --ink:      #0f0e0c;
+  --paper:    #f5f0e8;
+  --cream:    #ede7d9;
+  --warm:     #d4c9b0;
+  --accent:   #c8401a;
+  --accent2:  #2a6049;
+  --accent3:  #1a3a5c;
+  --gold:     #b8860b;
+  --text:     #1a1814;
+  --muted:    #6b6458;
+  --border:   #c8bfb0;
+  --surface:  #faf7f2;
+  --font-d:   'Playfair Display', Georgia, serif;
+  --font-s:   'IBM Plex Sans', sans-serif;
+  --font-m:   'IBM Plex Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  background: var(--paper);
+  color: var(--text);
+  font-family: var(--font-s);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── HEADER ─────────────────────────────────────── */
+header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--gold), var(--accent2));
+}
+.header-left { display: flex; align-items: baseline; gap: 16px; }
+.header-title {
+  font-family: var(--font-d);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--paper);
+}
+.header-rule {
+  width: 1px; height: 20px;
+  background: #ffffff30;
+}
+.header-sub {
+  font-family: var(--font-m);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #ffffff60;
+  text-transform: uppercase;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.config-btn {
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid #ffffff30;
+  border-radius: 4px;
+  color: #ffffff80;
+  font-family: var(--font-m);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+.config-btn:hover { border-color: var(--paper); color: var(--paper); }
+.last-sync {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: #ffffff40;
+  letter-spacing: 1px;
+}
+
+/* ── STAT CARDS ──────────────────────────────────── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.stat-card {
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s;
+}
+.stat-card:last-child { border-right: none; }
+.stat-card:hover { background: var(--cream); }
+.stat-label {
+  font-family: var(--font-m);
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--font-d);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-value.accent  { color: var(--accent); }
+.stat-value.green   { color: var(--accent2); }
+.stat-value.blue    { color: var(--accent3); }
+.stat-value.gold    { color: var(--gold); }
+.stat-delta {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: var(--muted);
+}
+.stat-delta .up   { color: var(--accent2); }
+.stat-delta .down { color: var(--accent); }
+.stat-bar {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  transition: width 1s ease;
+}
+.stat-bar.red   { background: var(--accent); }
+.stat-bar.green { background: var(--accent2); }
+.stat-bar.blue  { background: var(--accent3); }
+.stat-bar.gold  { background: var(--gold); }
+.stat-bar.warm  { background: var(--warm); }
+
+/* ── FILTER BAR ──────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--cream);
+  border-bottom: 1px solid var(--border);
+}
+.filter-label {
+  font-family: var(--font-m);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.filter-btn {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--font-m);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.filter-btn:hover { border-color: var(--ink); color: var(--ink); }
+.filter-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.filter-sep { width:1px; height:20px; background: var(--border); margin: 0 4px; }
+
+/* ── MAIN BODY ───────────────────────────────────── */
+.body-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  grid-template-rows: 1fr auto;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── MAP ─────────────────────────────────────────── */
+.map-panel {
+  position: relative;
+  overflow: hidden;
+}
+#map {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
+}
+.map-legend {
+  position: absolute;
+  bottom: 20px; left: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 16px;
+  z-index: 1000;
+  font-family: var(--font-m);
+  font-size: 10px;
+}
+.legend-title { letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.legend-grad {
+  width: 80px; height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #2a6049, #b8860b, #c8401a);
+}
+
+/* ── RIGHT PANEL ─────────────────────────────────── */
+.right-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  grid-row: 1 / 3;
+}
+.right-panel::-webkit-scrollbar { width: 4px; }
+.right-panel::-webkit-scrollbar-thumb { background: var(--border); }
+
+.panel-section {
+  border-bottom: 1px solid var(--border);
+  padding: 20px;
+}
+.panel-section:last-child { border-bottom: none; }
+.panel-title {
+  font-family: var(--font-m);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* Top Cities */
+.city-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+.city-row:hover { background: var(--cream); }
+.city-rank {
+  font-family: var(--font-d);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--warm);
+  width: 28px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.city-info { flex: 1; min-width: 0; }
+.city-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.city-province {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.city-count {
+  font-family: var(--font-m);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.city-bar-wrap {
+  width: 100%;
+  height: 2px;
+  background: var(--cream);
+  border-radius: 1px;
+  margin-top: 4px;
+}
+.city-bar {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--accent3);
+  transition: width 1s ease;
+}
+
+/* Churn by Region */
+.region-row {
+  margin-bottom: 12px;
+}
+.region-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.region-name { font-size: 12px; font-weight: 500; }
+.region-churn {
+  font-family: var(--font-m);
+  font-size: 11px;
+}
+.region-churn.high { color: var(--accent); }
+.region-churn.mid  { color: var(--gold); }
+.region-churn.low  { color: var(--accent2); }
+.region-track {
+  height: 4px;
+  background: var(--cream);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.region-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+.region-fill.high { background: var(--accent); }
+.region-fill.mid  { background: var(--gold); }
+.region-fill.low  { background: var(--accent2); }
+
+/* ── BOTTOM CHARTS ───────────────────────────────── */
+.bottom-charts {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.chart-wrap { }
+.chart-title {
+  font-family: var(--font-m);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+canvas { max-height: 140px; }
+
+/* ── MODAL ───────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: #0f0e0c88;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 32px;
+  width: 480px;
+  max-width: 94vw;
+  box-shadow: 0 24px 64px #0f0e0c44;
+}
+.modal-title {
+  font-family: var(--font-d);
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.modal-sub {
+  font-family: var(--font-m);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-family: var(--font-m);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--font-m);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-group input:focus { border-color: var(--ink); }
+.form-hint {
+  font-family: var(--font-m);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:24px; }
+.btn-primary {
+  padding: 10px 24px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  font-family: var(--font-s);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-s);
+  font-size: 13px;
+  cursor: pointer;
+}
+.no-data {
+  text-align: center;
+  padding: 30px 0;
+  font-family: var(--font-m);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <span class="header-title">POS Coverage Analytics</span>
+    <div class="header-rule"></div>
+    <span class="header-sub">Distribution Intelligence</span>
+  </div>
+  <div class="header-right">
+    <span class="last-sync" id="last-sync">—</span>
+    <button class="config-btn" onclick="openModal()">⚙ Configure</button>
+  </div>
+</header>
+
+<!-- STAT CARDS -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-label">Total Installs</div>
+    <div class="stat-value" id="s-total">—</div>
+    <div class="stat-delta">all time unique devices</div>
+    <div class="stat-bar warm" id="bar-total" style="width:100%"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Online Now</div>
+    <div class="stat-value green" id="s-online">—</div>
+    <div class="stat-delta">pinged last 15 min</div>
+    <div class="stat-bar green" id="bar-online" style="width:0%"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active</div>
+    <div class="stat-value blue" id="s-active">—</div>
+    <div class="stat-delta" id="d-active">pinged last 30 days</div>
+    <div class="stat-bar blue" id="bar-active" style="width:0%"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">At Risk</div>
+    <div class="stat-value gold" id="s-risk">—</div>
+    <div class="stat-delta" id="d-risk">31–60 days silent</div>
+    <div class="stat-bar gold" id="bar-risk" style="width:0%"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Churned</div>
+    <div class="stat-value accent" id="s-churned">—</div>
+    <div class="stat-delta" id="d-churned">silent 60+ days</div>
+    <div class="stat-bar red" id="bar-churn" style="width:0%"></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">New This Month</div>
+    <div class="stat-value" id="s-new">—</div>
+    <div class="stat-delta" id="d-new">first seen ≤ 30 days</div>
+    <div class="stat-bar warm" id="bar-new" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Show</span>
+  <button class="filter-btn active" data-filter="all" onclick="setFilter(this)">All Devices</button>
+  <button class="filter-btn" data-filter="active" onclick="setFilter(this)">Active</button>
+  <button class="filter-btn" data-filter="risk" onclick="setFilter(this)">At Risk</button>
+  <button class="filter-btn" data-filter="churned" onclick="setFilter(this)">Churned</button>
+  <button class="filter-btn" data-filter="new" onclick="setFilter(this)">New</button>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Period</span>
+  <button class="filter-btn active" data-period="30" onclick="setPeriod(this)">30 days</button>
+  <button class="filter-btn" data-period="60" onclick="setPeriod(this)">60 days</button>
+  <button class="filter-btn" data-period="90" onclick="setPeriod(this)">90 days</button>
+  <div style="margin-left:auto">
+    <button class="filter-btn" onclick="fetchData()">↺ Refresh</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body-grid">
+  <!-- MAP -->
+  <div class="map-panel">
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="legend-title">Density</div>
+      <div class="legend-row">
+        <div class="legend-grad"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px;margin-bottom:10px">
+        <span>Low</span><span>High</span>
+      </div>
+      <div class="legend-title" style="margin-top:4px">Dot colours (zoom in)</div>
+      <div class="legend-row" style="margin-bottom:3px">
+        <div style="width:10px;height:10px;border-radius:50%;background:#2a6049;flex-shrink:0"></div>
+        <span style="font-size:10px;color:var(--text)">Active</span>
+      </div>
+      <div class="legend-row" style="margin-bottom:3px">
+        <div style="width:10px;height:10px;border-radius:50%;background:#b8860b;flex-shrink:0"></div>
+        <span style="font-size:10px;color:var(--text)">At Risk</span>
+      </div>
+      <div class="legend-row" style="margin-bottom:10px">
+        <div style="width:10px;height:10px;border-radius:50%;background:#c8401a;flex-shrink:0"></div>
+        <span style="font-size:10px;color:var(--text)">Churned</span>
+      </div>
+      <div id="zoom-mode" style="font-size:9px;color:var(--muted);max-width:160px;line-height:1.5">
+        Heatmap mode — zoom in for dots
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="panel-title">Top Cities by Install</div>
+      <div id="top-cities"><div class="no-data">Configure API to load data</div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-title">Churn Rate by Region</div>
+      <div id="churn-regions"><div class="no-data">Configure API to load data</div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CHARTS -->
+  <div class="bottom-charts">
+    <div class="chart-wrap">
+      <div class="chart-title">New Installs Trend</div>
+      <canvas id="chart-installs"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Active vs Churned Over Time</div>
+      <canvas id="chart-churn"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title">API Configuration</div>
+    <div class="modal-sub">Connect to your backend server</div>
+    <div class="form-group">
+      <label>API Base URL</label>
+      <input type="url" id="cfg-api" placeholder="https://your-api.railway.app">
+      <div class="form-hint">Your Express.js server URL (see setup guide)</div>
+    </div>
+    <div class="form-group">
+      <label>API Secret Key</label>
+      <input type="password" id="cfg-secret" placeholder="your-dashboard-secret-key">
+      <div class="form-hint">Set in your server's .env as DASHBOARD_KEY</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveConfig()">Save & Load</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+let API_URL    = localStorage.getItem('cov_api') || '';
+let API_SECRET = localStorage.getItem('cov_secret') || '';
+let currentFilter = 'all';
+let currentPeriod = 30;
+let heatLayer = null;
+let circleLayer = null;
+let installChart = null;
+let churnChart = null;
+let allData = null;
+
+// ── MAP ───────────────────────────────────────────────────────────────────────
+const map = L.map('map').setView([-2.5, 118], 5);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+async function fetchData() {
+  if (!API_URL) { loadDemoData(); return; }
+  try {
+    const headers = { 'x-api-key': API_SECRET };
+    const [summary, cities, regions, trend, heatmap] = await Promise.all([
+      apiFetch('/analytics/summary'),
+      apiFetch('/analytics/top-cities'),
+      apiFetch('/analytics/churn-by-region'),
+      apiFetch('/analytics/install-trend'),
+      apiFetch('/analytics/heatmap'),
+    ]);
+    allData = { summary, cities, regions, trend, heatmap };
+    renderAll(allData);
+    document.getElementById('last-sync').textContent = 'Synced ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('last-sync').textContent = 'Error: ' + e.message;
+    loadDemoData();
+  }
+}
+
+async function apiFetch(path) {
+  const res = await fetch(API_URL + path, {
+    headers: { 'x-api-key': API_SECRET }
+  });
+  if (!res.ok) throw new Error(`${path} → ${res.status}`);
+  return res.json();
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+function renderAll(data) {
+  renderSummary(data.summary);
+  renderTopCities(data.cities);
+  renderChurnRegions(data.regions);
+  renderHeatmap(data.heatmap);
+  renderCharts(data.trend);
+}
+
+function renderSummary(s) {
+  const total = s.total || 1;
+  document.getElementById('s-total').textContent   = fmt(s.total);
+  document.getElementById('s-online').textContent  = fmt(s.online);
+  document.getElementById('s-active').textContent  = fmt(s.active);
+  document.getElementById('s-risk').textContent    = fmt(s.at_risk);
+  document.getElementById('s-churned').textContent = fmt(s.churned);
+  document.getElementById('s-new').textContent     = fmt(s.new_this_month);
+
+  document.getElementById('d-active').textContent  = pct(s.active, total) + '% of total';
+  document.getElementById('d-risk').textContent    = pct(s.at_risk, total) + '% of total';
+  document.getElementById('d-churned').textContent = pct(s.churned, total) + '% of total';
+  document.getElementById('d-new').textContent     = '+' + fmt(s.new_this_month) + ' this month';
+
+  document.getElementById('bar-online').style.width = pct(s.online, total) + '%';
+  document.getElementById('bar-active').style.width = pct(s.active, total) + '%';
+  document.getElementById('bar-risk').style.width   = pct(s.at_risk, total) + '%';
+  document.getElementById('bar-churn').style.width  = pct(s.churned, total) + '%';
+  document.getElementById('bar-new').style.width    = Math.min(pct(s.new_this_month, total) * 3, 100) + '%';
+}
+
+function renderTopCities(cities) {
+  const el = document.getElementById('top-cities');
+  if (!cities || !cities.length) { el.innerHTML = '<div class="no-data">No data</div>'; return; }
+  const max = cities[0].count;
+  el.innerHTML = cities.slice(0, 10).map((c, i) => `
+    <div class="city-row" onclick="flyTo(${c.lat}, ${c.lng})">
+      <div class="city-rank">${i+1}</div>
+      <div class="city-info">
+        <div class="city-name">${c.city}</div>
+        <div class="city-province">${c.province || ''}</div>
+        <div class="city-bar-wrap">
+          <div class="city-bar" style="width:${Math.round(c.count/max*100)}%"></div>
+        </div>
+      </div>
+      <div class="city-count">${fmt(c.count)}</div>
+    </div>`).join('');
+}
+
+function renderChurnRegions(regions) {
+  const el = document.getElementById('churn-regions');
+  if (!regions || !regions.length) { el.innerHTML = '<div class="no-data">No data</div>'; return; }
+  el.innerHTML = regions.map(r => {
+    const pct = Math.round(r.churn_rate * 100);
+    const cls = pct > 40 ? 'high' : pct > 20 ? 'mid' : 'low';
+    return `
+    <div class="region-row">
+      <div class="region-header">
+        <span class="region-name">${r.region}</span>
+        <span class="region-churn ${cls}">${pct}% churn</span>
+      </div>
+      <div class="region-track">
+        <div class="region-fill ${cls}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ZOOM-AWARE MAP LAYERS ─────────────────────────────────────────────────────
+// Zoom < DOT_ZOOM  → heatmap (density overview)
+// Zoom >= DOT_ZOOM → individual dots with popups
+const DOT_ZOOM = 11;
+let currentPoints = [];
+let dotLayerGroup = null;
+
+function renderHeatmap(points) {
+  currentPoints = points || [];
+  updateMapLayer();
+}
+
+function updateMapLayer() {
+  const zoom = map.getZoom();
+  const filtered = filterPoints(currentPoints, currentFilter);
+
+  if (zoom < DOT_ZOOM) {
+    showHeatmap(filtered);
+  } else {
+    showDots(filtered);
+  }
+  updateZoomIndicator(zoom);
+}
+
+function showHeatmap(points) {
+  // Remove dots
+  if (dotLayerGroup) { map.removeLayer(dotLayerGroup); dotLayerGroup = null; }
+
+  // Remove old heat
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  if (!points.length) return;
+
+  const heatData = points.map(p => [p.lat, p.lng, p.weight || 1]);
+  heatLayer = L.heatLayer(heatData, {
+    radius: 35,
+    blur: 25,
+    maxZoom: DOT_ZOOM - 1,
+    gradient: { 0.0: '#2a6049', 0.4: '#b8860b', 0.7: '#c8401a', 1.0: '#8b0000' }
+  }).addTo(map);
+}
+
+function showDots(points) {
+  // Remove heatmap
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+
+  // Remove old dots
+  if (dotLayerGroup) { map.removeLayer(dotLayerGroup); dotLayerGroup = null; }
+  if (!points.length) return;
+
+  dotLayerGroup = L.layerGroup();
+
+  points.forEach(p => {
+    const isOnline  = p.status === 'active' && p.is_online;
+    const color     = statusColor(p.status);
+    const glowColor = statusGlow(p.status);
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:12px; height:12px; border-radius:50%;
+        background:${color};
+        border: 2px solid rgba(255,255,255,0.6);
+        box-shadow: 0 0 ${isOnline ? '8px 3px' : '3px 1px'} ${glowColor};
+        transition: transform 0.15s;
+        cursor: pointer;
+      "></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
+      popupAnchor: [0, -8],
+    });
+
+    const statusLabel = { active: 'Active', risk: 'At Risk', churned: 'Churned' }[p.status] || p.status;
+    const onlineLabel = p.is_online ? '🟢 Online now' : '⚫ Offline';
+
+    const popup = `
+      <div style="font-family:'IBM Plex Sans',sans-serif; min-width:180px;">
+        <div style="font-weight:600; font-size:13px; margin-bottom:6px; color:#1a1814">
+          ${p.store_name || p.device_id || 'Unknown Store'}
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6b6458; line-height:1.9;">
+          <div>ID: <span style="color:#1a1814">${p.device_id || '—'}</span></div>
+          <div>Last ping: <span style="color:#1a1814">${p.last_ping ? timeAgo(p.last_ping) : '—'}</span></div>
+          <div>City: <span style="color:#1a1814">${p.city || '—'}</span></div>
+        </div>
+        <div style="margin-top:8px; padding:5px 10px; border-radius:3px; text-align:center;
+          font-family:'IBM Plex Mono',monospace; font-size:10px;
+          background:${color}22; color:${color}; border:1px solid ${color}44;">
+          ${onlineLabel} · ${statusLabel}
+        </div>
+      </div>`;
+
+    L.marker([p.lat, p.lng], { icon })
+      .bindPopup(popup, { maxWidth: 220 })
+      .addTo(dotLayerGroup);
+  });
+
+  dotLayerGroup.addTo(map);
+}
+
+function statusColor(status) {
+  return { active: '#2a6049', risk: '#b8860b', churned: '#c8401a' }[status] || '#6b6458';
+}
+function statusGlow(status) {
+  return { active: '#2a604966', risk: '#b8860b66', churned: '#c8401a44' }[status] || '#6b645844';
+}
+
+// Listen to zoom changes
+map.on('zoomend', updateMapLayer);
+
+function updateZoomIndicator(zoom) {
+  const el = document.getElementById('zoom-mode');
+  if (!el) return;
+  if (zoom < DOT_ZOOM) {
+    el.textContent = `Heatmap mode — zoom in to zoom ≥${DOT_ZOOM} for dots`;
+    el.style.color = 'var(--muted)';
+  } else {
+    el.textContent = `Dot mode (zoom ${zoom}) — showing individual stores`;
+    el.style.color = 'var(--accent2)';
+  }
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+  if (s < 60)   return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400)return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+
+function renderCharts(trend) {
+  if (!trend) return;
+  const labels = trend.map(t => t.month);
+  const newInstalls = trend.map(t => t.new_installs);
+  const active = trend.map(t => t.active);
+  const churned = trend.map(t => t.churned);
+
+  const commonOpts = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#c8bfb020' }, ticks: { font: { family: 'IBM Plex Mono', size: 9 }, color: '#6b6458' }},
+      y: { grid: { color: '#c8bfb020' }, ticks: { font: { family: 'IBM Plex Mono', size: 9 }, color: '#6b6458' }}
+    }
+  };
+
+  // Install trend chart
+  if (installChart) installChart.destroy();
+  installChart = new Chart(document.getElementById('chart-installs'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: newInstalls,
+        backgroundColor: '#1a3a5c44',
+        borderColor: '#1a3a5c',
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: { ...commonOpts }
+  });
+
+  // Active vs Churned line chart
+  if (churnChart) churnChart.destroy();
+  churnChart = new Chart(document.getElementById('chart-churn'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Active',
+          data: active,
+          borderColor: '#2a6049',
+          backgroundColor: '#2a604920',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 2,
+        },
+        {
+          label: 'Churned',
+          data: churned,
+          borderColor: '#c8401a',
+          backgroundColor: '#c8401a15',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 2,
+        }
+      ]
+    },
+    options: {
+      ...commonOpts,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { font: { family: 'IBM Plex Mono', size: 9 }, color: '#6b6458', boxWidth: 10, padding: 12 }
+        }
+      }
+    }
+  });
+}
+
+// ── FILTER ────────────────────────────────────────────────────────────────────
+function filterPoints(points, filter) {
+  if (filter === 'all') return points;
+  return points.filter(p => p.status === filter);
+}
+
+function setFilter(btn) {
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  if (allData && allData.heatmap) updateMapLayer();
+}
+
+function setPeriod(btn) {
+  document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentPeriod = parseInt(btn.dataset.period);
+  fetchData();
+}
+
+function flyTo(lat, lng) {
+  map.flyTo([lat, lng], 11, { duration: 1.2 });
+}
+
+// ── DEMO DATA ─────────────────────────────────────────────────────────────────
+function loadDemoData() {
+  const summary = { total:84320, online:3240, active:61240, at_risk:12800, churned:10280, new_this_month:3420 };
+  const cities = [
+    { city:'Jakarta Selatan', province:'DKI Jakarta', count:12400, lat:-6.261, lng:106.810 },
+    { city:'Surabaya',        province:'Jawa Timur',  count:9820,  lat:-7.257, lng:112.752 },
+    { city:'Bandung',         province:'Jawa Barat',  count:7650,  lat:-6.921, lng:107.607 },
+    { city:'Medan',           province:'Sumatra Utara',count:5430, lat:3.597,  lng:98.672  },
+    { city:'Makassar',        province:'Sulawesi Sel', count:4280, lat:-5.147, lng:119.432 },
+    { city:'Semarang',        province:'Jawa Tengah', count:3920,  lat:-6.966, lng:110.416 },
+    { city:'Palembang',       province:'Sumatra Sel',  count:3210, lat:-2.976, lng:104.775 },
+    { city:'Tangerang',       province:'Banten',       count:2980, lat:-6.178, lng:106.630 },
+    { city:'Depok',           province:'Jawa Barat',   count:2640, lat:-6.402, lng:106.794 },
+    { city:'Yogyakarta',      province:'DIY',          count:2410, lat:-7.797, lng:110.370 },
+  ];
+  const regions = [
+    { region:'Kalimantan',   churn_rate:0.52 },
+    { region:'Sulawesi',     churn_rate:0.38 },
+    { region:'Sumatra',      churn_rate:0.29 },
+    { region:'Papua',        churn_rate:0.27 },
+    { region:'Jawa',         churn_rate:0.18 },
+    { region:'Bali & NTB',   churn_rate:0.14 },
+  ];
+  const months = ['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+  const trend = months.map((m,i) => ({
+    month: m,
+    new_installs: Math.round(2400 + Math.random()*1200 + i*80),
+    active: Math.round(48000 + i*1200 + Math.random()*2000),
+    churned: Math.round(8000 + i*200 + Math.random()*800),
+  }));
+
+  // Generate heatmap demo points spread across Indonesia
+  const heatmap = [];
+  const demoNames = ['Toko Maju','Warung Sejahtera','Mini Market','Apotek','Restoran','Butik','Toko Baru','Kios Jaya','Swalayan','Depot'];
+  cities.forEach(c => {
+    for(let i=0; i<Math.round(c.count/100); i++) {
+      const status = ['active','active','active','risk','churned'][Math.floor(Math.random()*5)];
+      const minsAgo = status==='active' ? Math.floor(Math.random()*30)
+                    : status==='risk'   ? Math.floor(Math.random()*30*24*60) + 30*24*60
+                    : Math.floor(Math.random()*60*24*60) + 60*24*60;
+      heatmap.push({
+        lat: c.lat + (Math.random()-0.5)*1.5,
+        lng: c.lng + (Math.random()-0.5)*1.5,
+        weight: Math.random(),
+        status,
+        is_online:  status === 'active' && Math.random() > 0.5,
+        device_id:  'POS-' + Math.random().toString(36).substring(2,8).toUpperCase(),
+        store_name: demoNames[Math.floor(Math.random()*demoNames.length)] + ' ' + c.city,
+        city:       c.city,
+        last_ping:  new Date(Date.now() - minsAgo * 60 * 1000).toISOString(),
+      });
+    }
+  });
+
+  allData = { summary, cities, regions, trend, heatmap };
+  renderAll(allData);
+  document.getElementById('last-sync').textContent = 'Demo data — configure API to connect';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('cfg-api').value = API_URL;
+  document.getElementById('cfg-secret').value = API_SECRET;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function saveConfig() {
+  API_URL    = document.getElementById('cfg-api').value.trim().replace(/\/$/,'');
+  API_SECRET = document.getElementById('cfg-secret').value.trim();
+  localStorage.setItem('cov_api', API_URL);
+  localStorage.setItem('cov_secret', API_SECRET);
+  closeModal();
+  fetchData();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n === undefined || n === null) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  return n.toString();
+}
+function pct(a, b) { return b ? Math.round(a/b*100) : 0; }
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+fetchData();
+</script>
+</body>
+</html>
