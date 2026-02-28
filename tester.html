@@ -10,215 +10,156 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:      #0f172a;
-  --surface: #1e293b;
-  --border:  #334155;
-  --text:    #f1f5f9;
-  --muted:   #64748b;
-  --green:   #22c55e;
-  --red:     #ef4444;
-  --blue:    #3b82f6;
-  --yellow:  #eab308;
-  --fm: 'JetBrains Mono', monospace;
-  --fs: 'Inter', sans-serif;
+  --bg:     #0f172a; --surface:#1e293b; --border:#334155;
+  --text:   #f1f5f9; --muted:  #64748b;
+  --green:  #22c55e; --red:#ef4444; --blue:#3b82f6; --yellow:#eab308;
+  --fm:'JetBrains Mono',monospace; --fs:'Inter',sans-serif;
 }
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-body {
-  background: var(--bg); color: var(--text);
-  font-family: var(--fs); min-height:100vh;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--fs);min-height:100vh;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 
-/* ── HEADER ────────────────────────────────────── */
-.header {
-  padding: 20px 20px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.header-title { font-size:17px; font-weight:600; }
-.header-sub   { font-family:var(--fm); font-size:9px; color:var(--muted); letter-spacing:2px; margin-top:2px; text-transform:uppercase; }
+/* HEADER */
+.hdr{padding:20px 20px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:17px;font-weight:600}
+.hdr-sub{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:2px;text-transform:uppercase}
+.ring{width:52px;height:52px;border-radius:50%;border:2px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .4s;flex-shrink:0}
+.ring.active{border-color:var(--green);box-shadow:0 0 0 4px #22c55e20;animation:rp 2s ease-in-out infinite}
+.ring.error{border-color:var(--red)}
+@keyframes rp{0%,100%{box-shadow:0 0 0 4px #22c55e20}50%{box-shadow:0 0 0 12px transparent}}
+.ring-icon{font-size:20px;line-height:1}
+.ring-lbl{font-family:var(--fm);font-size:7px;color:var(--muted);letter-spacing:1px;margin-top:1px;text-transform:uppercase}
 
-/* Status ring */
-.ring {
-  width:52px; height:52px; border-radius:50%;
-  border: 2px solid var(--border);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  transition: all .4s;
-  flex-shrink:0;
-}
-.ring.active { border-color:var(--green); box-shadow:0 0 0 4px #22c55e20; animation: rp 2s ease-in-out infinite; }
-.ring.error  { border-color:var(--red); }
-@keyframes rp { 0%,100%{box-shadow:0 0 0 4px #22c55e20} 50%{box-shadow:0 0 0 10px transparent} }
-.ring-icon  { font-size:20px; line-height:1; }
-.ring-label { font-family:var(--fm); font-size:7px; color:var(--muted); letter-spacing:1px; margin-top:1px; text-transform:uppercase; }
+/* SECTIONS */
+.sec{padding:16px 20px;border-bottom:1px solid var(--border)}
+.sec-title{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.fg{margin-bottom:12px}.fg:last-child{margin-bottom:0}
+.fg label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.fg input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:var(--fm);font-size:12px;outline:none;transition:border-color .15s}
+.fg input:focus{border-color:var(--blue)}
+.hint{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--fm)}
 
-/* ── SECTIONS ──────────────────────────────────── */
-.section { padding:16px 20px; border-bottom:1px solid var(--border); }
-.section-title { font-family:var(--fm); font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:14px; }
-
-/* Form */
-.fg { margin-bottom:12px; }
-.fg:last-child { margin-bottom:0; }
-.fg label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; font-weight:500; }
-.fg input {
-  width:100%; padding:10px 12px;
-  background: var(--bg); border:1px solid var(--border); border-radius:8px;
-  color:var(--text); font-family:var(--fm); font-size:12px; outline:none;
-  transition: border-color .15s;
-}
-.fg input:focus { border-color: var(--blue); }
-.fg .hint { font-size:10px; color:var(--muted); margin-top:4px; font-family:var(--fm); }
-
-/* Device ID row */
-.device-row {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px; background:var(--bg); border:1px solid var(--border);
-  border-radius:8px; margin-top:12px;
-}
-.device-id { font-family:var(--fm); font-size:13px; color:var(--blue); font-weight:500; }
-.copy-btn  { font-size:11px; color:var(--muted); background:none; border:none; cursor:pointer; padding:2px 6px; }
+/* Device ID */
+.did-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-top:10px}
+.did-val{font-family:var(--fm);font-size:13px;color:var(--blue);font-weight:500}
+.copy-btn{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 8px}
 
 /* Location grid */
-.loc-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.loc-box  { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
-.loc-label{ font-family:var(--fm); font-size:9px; color:var(--muted); margin-bottom:3px; text-transform:uppercase; letter-spacing:1px; }
-.loc-val  { font-family:var(--fm); font-size:12px; font-weight:500; }
-.loc-val.ok  { color:var(--green); }
-.loc-val.err { color:var(--red); font-size:10px; }
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.loc-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.loc-lbl{font-family:var(--fm);font-size:9px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:1px}
+.loc-val{font-family:var(--fm);font-size:12px;font-weight:500}
+.loc-val.ok{color:var(--green)}.loc-val.err{color:var(--red);font-size:10px}
 
 /* Buttons */
-.btn-primary {
-  width:100%; padding:15px; border:none; border-radius:10px;
-  font-family:var(--fs); font-size:15px; font-weight:600; cursor:pointer;
-  transition:all .15s; display:flex; align-items:center; justify-content:center; gap:8px;
-}
-.btn-primary.start { background:var(--green); color:#0f172a; }
-.btn-primary.stop  { background:var(--red);   color:white; }
-.btn-primary:active{ transform:scale(.98); opacity:.9; }
-
-.btn-secondary {
-  width:100%; padding:12px; border:1px solid var(--border);
-  border-radius:10px; background:transparent; color:var(--blue);
-  font-family:var(--fs); font-size:14px; font-weight:500;
-  cursor:pointer; margin-top:8px; transition:all .15s;
-}
-.btn-secondary:disabled { opacity:.35; cursor:not-allowed; }
-.btn-secondary:not(:disabled):active { background:var(--surface); }
+.btn{width:100%;padding:15px;border:none;border-radius:10px;font-family:var(--fs);
+  font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.start{background:var(--green);color:#0f172a}
+.btn.stop{background:var(--red);color:#fff}
+.btn:active{transform:scale(.98);opacity:.9}
+.btn2{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;
+  background:transparent;color:var(--blue);font-family:var(--fs);font-size:14px;
+  font-weight:500;cursor:pointer;margin-top:8px;transition:all .15s}
+.btn2:disabled{opacity:.35;cursor:not-allowed}
+.btn2:not(:disabled):active{background:var(--surface)}
 
 /* Countdown */
-.countdown-row {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:10px 12px; background:var(--bg); border:1px solid var(--border);
-  border-radius:8px; margin-top:8px;
-  font-family:var(--fm); font-size:11px; color:var(--muted);
-}
-.cd { color:var(--green); font-weight:500; }
-.cd.off { color:var(--border); }
+.cd-row{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;margin-top:8px;font-family:var(--fm);font-size:11px;color:var(--muted)}
+.cd{color:var(--green);font-weight:500}.cd.off{color:var(--border)}
 
 /* Log */
-.log {
-  background:var(--bg); border-radius:8px; padding:12px;
-  max-height:200px; overflow-y:auto; font-family:var(--fm); font-size:11px; line-height:1.9;
-}
-.log::-webkit-scrollbar { width:3px; }
-.log::-webkit-scrollbar-thumb { background:var(--border); }
-.le  { display:flex; gap:8px; }
-.lt  { color:var(--muted); flex-shrink:0; width:60px; font-size:10px; }
-.lm.ok   { color:var(--green); }
-.lm.err  { color:var(--red); }
-.lm.warn { color:var(--yellow); }
-.lm.info { color:var(--text); }
+.log{background:var(--bg);border-radius:8px;padding:12px;max-height:200px;
+  overflow-y:auto;font-family:var(--fm);font-size:11px;line-height:1.9}
+.log::-webkit-scrollbar{width:3px}
+.log::-webkit-scrollbar-thumb{background:var(--border)}
+.le{display:flex;gap:8px}
+.lt{color:var(--muted);flex-shrink:0;width:64px;font-size:10px}
+.lm.ok{color:var(--green)}.lm.err{color:var(--red)}.lm.warn{color:var(--yellow)}.lm.info{color:var(--text)}
 
 /* Install banner */
-.install-banner {
-  margin:16px 20px 0;
-  padding:10px 14px;
-  background:#3b82f610; border:1px solid #3b82f630;
-  border-radius:8px; font-size:11px; color:var(--blue); line-height:1.7;
-}
+.banner{margin:14px 20px 0;padding:10px 14px;background:#3b82f610;
+  border:1px solid #3b82f630;border-radius:8px;font-size:11px;color:var(--blue);line-height:1.7}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
+<div class="hdr">
   <div>
-    <div class="header-title">POS Ping Tester</div>
-    <div class="header-sub">Direct → MongoDB Atlas</div>
+    <div class="hdr-title">POS Ping Tester</div>
+    <div class="hdr-sub">Cloudflare Worker · v4.0</div>
   </div>
   <div class="ring idle" id="ring">
     <div class="ring-icon">📍</div>
-    <div class="ring-label" id="ring-label">IDLE</div>
+    <div class="ring-lbl" id="ring-lbl">IDLE</div>
   </div>
 </div>
 
-<!-- PWA INSTALL HINT -->
-<div class="install-banner" id="install-banner" style="display:none">
+<div class="banner" id="pwa-banner" style="display:none">
   📲 <strong>Install as PWA:</strong> Share → Add to Home Screen (iOS) · Install App (Android)
 </div>
 
 <!-- CONFIG -->
-<div class="section">
-  <div class="section-title">MongoDB Atlas Config</div>
+<div class="sec">
+  <div class="sec-title">Cloudflare Worker Config</div>
   <div class="fg">
-    <label>Atlas App ID</label>
-    <input type="text" id="f-appid" placeholder="your-app-id-abcde">
-    <div class="hint">App Services → Your App → App ID</div>
+    <label>Worker URL</label>
+    <input type="url" id="f-url" placeholder="https://pos-coverage.your-name.workers.dev">
+    <div class="hint">Your deployed worker URL</div>
   </div>
   <div class="fg">
-    <label>Data API Key</label>
-    <input type="password" id="f-apikey" placeholder="your-data-api-key">
-    <div class="hint">App Services → Authentication → API Keys</div>
-  </div>
-  <div class="fg">
-    <label>Database Name</label>
-    <input type="text" id="f-db" placeholder="pos_analytics">
+    <label>Device API Key</label>
+    <input type="password" id="f-key" placeholder="your-device-secret-key">
+    <div class="hint">Matches DEVICE_KEY secret in your worker</div>
   </div>
   <div class="fg">
     <label>Store Name <span style="color:var(--muted);font-weight:400">(optional)</span></label>
     <input type="text" id="f-store" placeholder="e.g. Toko Maju Jaya">
   </div>
-  <div class="device-row">
-    <div class="device-id" id="did">—</div>
-    <button class="copy-btn" onclick="copyId()">Copy</button>
+  <div class="did-row">
+    <div class="did-val" id="did">—</div>
+    <button class="copy-btn" onclick="copyId()">Copy ID</button>
   </div>
 </div>
 
 <!-- LOCATION -->
-<div class="section">
-  <div class="section-title">Location</div>
+<div class="sec">
+  <div class="sec-title">GPS Location</div>
   <div class="loc-grid">
-    <div class="loc-box"><div class="loc-label">Latitude</div><div class="loc-val" id="l-lat">—</div></div>
-    <div class="loc-box"><div class="loc-label">Longitude</div><div class="loc-val" id="l-lng">—</div></div>
-    <div class="loc-box"><div class="loc-label">Accuracy</div><div class="loc-val" id="l-acc">—</div></div>
-    <div class="loc-box"><div class="loc-label">GPS</div><div class="loc-val" id="l-gps">Waiting</div></div>
+    <div class="loc-box"><div class="loc-lbl">Latitude</div><div class="loc-val" id="l-lat">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">Longitude</div><div class="loc-val" id="l-lng">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">Accuracy</div><div class="loc-val" id="l-acc">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">GPS</div><div class="loc-val" id="l-gps">—</div></div>
   </div>
 </div>
 
 <!-- CONTROLS -->
-<div class="section">
-  <div class="section-title">Controls</div>
-  <button class="btn-primary start" id="toggle-btn" onclick="toggle()">▶ Start Tracking</button>
-  <button class="btn-secondary" id="force-btn" onclick="forcePing()" disabled>⚡ Force Ping Now</button>
-  <div class="countdown-row">
+<div class="sec">
+  <div class="sec-title">Controls</div>
+  <button class="btn start" id="toggle-btn" onclick="toggle()">▶ Start Tracking</button>
+  <button class="btn2" id="force-btn" onclick="forcePing()" disabled>⚡ Force Ping Now</button>
+  <div class="cd-row">
     <span>Next ping in</span>
     <span class="cd off" id="cd">—</span>
   </div>
 </div>
 
 <!-- LOG -->
-<div class="section" style="border-bottom:none">
-  <div class="section-title">Log</div>
+<div class="sec" style="border:none">
+  <div class="sec-title">Activity Log</div>
   <div class="log" id="log">
     <div class="le"><span class="lt">—</span><span class="lm info">Ready. Fill in config and press Start.</span></div>
   </div>
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-const INTERVAL_MS  = 60 * 60 * 1000;  // 1 hour
-const OFFLINE_MS   = 75 * 60 * 1000;  // 75 min threshold (1 cycle + 15 min tolerance)
+const INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 // ── DEVICE ID ─────────────────────────────────────────────────────────────────
 const deviceId = (() => {
@@ -228,82 +169,54 @@ const deviceId = (() => {
   return id;
 })();
 
-// ── INIT UI ───────────────────────────────────────────────────────────────────
-document.getElementById('did').textContent    = deviceId;
-document.getElementById('f-appid').value      = localStorage.getItem('pt_appid')  || '';
-document.getElementById('f-apikey').value     = localStorage.getItem('pt_apikey') || '';
-document.getElementById('f-db').value         = localStorage.getItem('pt_db')     || 'pos_analytics';
-document.getElementById('f-store').value      = localStorage.getItem('pt_store')  || '';
-
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('did').textContent   = deviceId;
+document.getElementById('f-url').value       = localStorage.getItem('pt_url')   || '';
+document.getElementById('f-key').value       = localStorage.getItem('pt_key')   || '';
+document.getElementById('f-store').value     = localStorage.getItem('pt_store') || '';
 if (/Mobi|Android/i.test(navigator.userAgent))
-  document.getElementById('install-banner').style.display = 'block';
+  document.getElementById('pwa-banner').style.display = 'block';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let running  = false;
-let timer    = null;
-let cdTimer  = null;
-let nextPing = null;
-let visHandler = null;
+let running = false, timer = null, cdTimer = null, nextPing = null, visHandler = null;
 
-// ── CORE PING ─────────────────────────────────────────────────────────────────
+// ── PING ──────────────────────────────────────────────────────────────────────
 async function sendPing() {
-  const appId  = document.getElementById('f-appid').value.trim();
-  const apiKey = document.getElementById('f-apikey').value.trim();
-  const db     = document.getElementById('f-db').value.trim() || 'pos_analytics';
-  const store  = document.getElementById('f-store').value.trim();
+  const url   = document.getElementById('f-url').value.trim().replace(/\/$/,'');
+  const key   = document.getElementById('f-key').value.trim();
+  const store = document.getElementById('f-store').value.trim();
+  if (!url || !key) { addLog('⚠ Missing Worker URL or API key', 'warn'); return; }
 
-  if (!appId || !apiKey) { log('⚠ Missing App ID or API Key', 'warn'); return; }
+  const payload = { device_id: deviceId, store_name: store };
 
-  const now    = new Date().toISOString();
-  const update = {
-    $set: { last_ping: { $date: now }, store_name: store },
-    $setOnInsert: { device_id: deviceId, first_seen: { $date: now } }
-  };
-
-  // Try to get location
+  // GPS
   try {
-    const pos = await getLocation();
-    update.$set.latitude  = pos.coords.latitude;
-    update.$set.longitude = pos.coords.longitude;
-    update.$set.location  = { type:'Point', coordinates:[pos.coords.longitude, pos.coords.latitude] };
-    document.getElementById('l-lat').textContent  = pos.coords.latitude.toFixed(6);
-    document.getElementById('l-lat').className    = 'loc-val ok';
-    document.getElementById('l-lng').textContent  = pos.coords.longitude.toFixed(6);
-    document.getElementById('l-lng').className    = 'loc-val ok';
-    document.getElementById('l-acc').textContent  = pos.coords.accuracy ? '±'+Math.round(pos.coords.accuracy)+'m' : '—';
-    document.getElementById('l-gps').textContent  = 'OK';
-    document.getElementById('l-gps').className    = 'loc-val ok';
+    const pos = await gps();
+    payload.latitude  = pos.coords.latitude;
+    payload.longitude = pos.coords.longitude;
+    payload.accuracy  = pos.coords.accuracy;
+    $('l-lat').textContent = pos.coords.latitude.toFixed(6);  $('l-lat').className = 'loc-val ok';
+    $('l-lng').textContent = pos.coords.longitude.toFixed(6); $('l-lng').className = 'loc-val ok';
+    $('l-acc').textContent = pos.coords.accuracy ? '±'+Math.round(pos.coords.accuracy)+'m' : '—';
+    $('l-gps').textContent = 'OK'; $('l-gps').className = 'loc-val ok';
   } catch(e) {
-    document.getElementById('l-gps').textContent = 'Unavailable';
-    document.getElementById('l-gps').className   = 'loc-val err';
+    $('l-gps').textContent = 'Unavailable'; $('l-gps').className = 'loc-val err';
   }
 
-  // Send to MongoDB Atlas Data API
+  // Send to Worker
   try {
-    const res = await fetch(
-      `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1/action/updateOne`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'api-key': apiKey },
-        body: JSON.stringify({
-          dataSource: 'Cluster0',
-          database:   db,
-          collection: 'devices',
-          filter:     { device_id: deviceId },
-          update,
-          upsert:     true,
-        })
-      }
-    );
-
-    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`); }
-    const result = await res.json();
-    log('✓ Ping sent → ' + (result.matchedCount ? 'updated' : 'inserted'), 'ok');
+    const res = await fetch(url + '/ping', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    addLog('✓ Ping sent — ' + data.ts, 'ok');
     setRing('active');
     nextPing = Date.now() + INTERVAL_MS;
-
   } catch(e) {
-    log('✗ ' + e.message, 'err');
+    addLog('✗ ' + e.message, 'err');
     setRing('error');
   }
 }
@@ -312,26 +225,20 @@ async function sendPing() {
 function toggle() { running ? stopTracking() : startTracking(); }
 
 function startTracking() {
-  // Save config
-  localStorage.setItem('pt_appid',  document.getElementById('f-appid').value.trim());
-  localStorage.setItem('pt_apikey', document.getElementById('f-apikey').value.trim());
-  localStorage.setItem('pt_db',     document.getElementById('f-db').value.trim());
-  localStorage.setItem('pt_store',  document.getElementById('f-store').value.trim());
+  localStorage.setItem('pt_url',   document.getElementById('f-url').value.trim());
+  localStorage.setItem('pt_key',   document.getElementById('f-key').value.trim());
+  localStorage.setItem('pt_store', document.getElementById('f-store').value.trim());
 
-  running  = true;
-  nextPing = Date.now() + INTERVAL_MS;
-
+  running = true; nextPing = Date.now() + INTERVAL_MS;
   sendPing();
   timer = setInterval(sendPing, INTERVAL_MS);
-
   visHandler = () => { if (document.visibilityState === 'visible') sendPing(); };
   document.addEventListener('visibilitychange', visHandler);
 
-  document.getElementById('toggle-btn').innerHTML = '■ Stop Tracking';
-  document.getElementById('toggle-btn').className = 'btn-primary stop';
-  document.getElementById('force-btn').disabled   = false;
-  startCountdown();
-  log('▶ Started — pinging every 1 hour', 'info');
+  $('toggle-btn').innerHTML = '■ Stop Tracking'; $('toggle-btn').className = 'btn stop';
+  $('force-btn').disabled = false;
+  startCd();
+  addLog('▶ Started — pinging every 1 hour', 'info');
 }
 
 function stopTracking() {
@@ -340,81 +247,70 @@ function stopTracking() {
   clearInterval(cdTimer); cdTimer = null;
   if (visHandler) { document.removeEventListener('visibilitychange', visHandler); visHandler = null; }
 
-  document.getElementById('toggle-btn').innerHTML = '▶ Start Tracking';
-  document.getElementById('toggle-btn').className = 'btn-primary start';
-  document.getElementById('force-btn').disabled   = true;
-  document.getElementById('cd').textContent = '—';
-  document.getElementById('cd').className   = 'cd off';
-
+  $('toggle-btn').innerHTML = '▶ Start Tracking'; $('toggle-btn').className = 'btn start';
+  $('force-btn').disabled = true;
+  $('cd').textContent = '—'; $('cd').className = 'cd off';
   setRing('idle');
-  log('■ Stopped', 'warn');
+  addLog('■ Stopped', 'warn');
 }
 
 async function forcePing() {
-  log('⚡ Force ping...', 'info');
+  addLog('⚡ Force ping...', 'info');
   await sendPing();
   nextPing = Date.now() + INTERVAL_MS;
 }
 
-// ── COUNTDOWN ─────────────────────────────────────────────────────────────────
-function startCountdown() {
+function startCd() {
   if (cdTimer) clearInterval(cdTimer);
   cdTimer = setInterval(() => {
     if (!nextPing) return;
     const rem = nextPing - Date.now();
-    if (rem <= 0) { document.getElementById('cd').textContent = 'pinging...'; return; }
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('cd').textContent = `${m}m ${String(s).padStart(2,'0')}s`;
-    document.getElementById('cd').className   = 'cd';
+    if (rem <= 0) { $('cd').textContent = 'pinging...'; return; }
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+    $('cd').textContent = m + 'm ' + String(s).padStart(2,'0') + 's';
+    $('cd').className = 'cd';
   }, 1000);
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function getLocation() {
-  return new Promise((res, rej) => {
-    if (!navigator.geolocation) { rej(new Error('GPS N/A')); return; }
-    navigator.geolocation.getCurrentPosition(res,
-      e => rej(new Error(`GPS(${e.code})`)),
-      { enableHighAccuracy:false, timeout:8000, maximumAge:3600000 }
-    );
-  });
-}
+function $(id) { return document.getElementById(id); }
 
 function setRing(state) {
-  const r = document.getElementById('ring');
   const icons = { idle:'📍', active:'🟢', error:'🔴' };
-  r.className = 'ring ' + state;
-  r.querySelector('.ring-icon').textContent  = icons[state] || '📍';
-  r.querySelector('#ring-label').textContent = state.toUpperCase();
+  $('ring').className = 'ring ' + state;
+  $('ring').querySelector('.ring-icon').textContent = icons[state] || '📍';
+  $('ring-lbl').textContent = state.toUpperCase();
 }
 
-function log(msg, type='info') {
-  const el = document.getElementById('log');
+function addLog(msg, type='info') {
+  const el = $('log');
   const d  = document.createElement('div');
   d.className = 'le';
   d.innerHTML = `<span class="lt">${new Date().toLocaleTimeString()}</span><span class="lm ${type}">${msg}</span>`;
-  el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+function gps() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) { rej(); return; }
+    navigator.geolocation.getCurrentPosition(res, rej,
+      { enableHighAccuracy:false, timeout:8000, maximumAge:3600000 });
+  });
 }
 
 function copyId() {
   navigator.clipboard.writeText(deviceId).then(() => {
     const b = document.querySelector('.copy-btn');
-    b.textContent = 'Copied!';
-    setTimeout(() => b.textContent = 'Copy', 1500);
+    b.textContent = 'Copied!'; setTimeout(() => b.textContent = 'Copy ID', 1500);
   });
 }
 
-// ── PWA MANIFEST ──────────────────────────────────────────────────────────────
-const mf = {
-  name:'POS Ping Tester', short_name:'POS Ping', start_url:'.', display:'standalone',
+// PWA manifest
+const mf = { name:'POS Ping Tester', short_name:'POS Ping', start_url:'.', display:'standalone',
   background_color:'#0f172a', theme_color:'#0f172a',
-  icons:[{ src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E%F0%9F%93%8D%3C/text%3E%3C/svg%3E", sizes:'512x512', type:'image/svg+xml' }]
-};
-const blob = new Blob([JSON.stringify(mf)], { type:'application/json' });
-const lnk  = document.createElement('link');
-lnk.rel = 'manifest'; lnk.href = URL.createObjectURL(blob);
+  icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E%F0%9F%93%8D%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml'}]};
+const blob = new Blob([JSON.stringify(mf)],{type:'application/json'});
+const lnk = document.createElement('link'); lnk.rel='manifest'; lnk.href=URL.createObjectURL(blob);
 document.head.appendChild(lnk);
 </script>
 </body>
