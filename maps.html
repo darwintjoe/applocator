@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Network — Coverage Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; width:100%; overflow:hidden; font-family:'Inter',sans-serif; }
+
+/* ── FULL SCREEN MAP ─────────────────────────────── */
+#map { position:fixed; inset:0; z-index:0; }
+
+/* ── FLOATING TOP BAR ───────────────────────────── */
+.topbar {
+  position: fixed;
+  top: 16px; left: 16px; right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.topbar > * { pointer-events: all; }
+
+/* Brand pill */
+.brand-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px var(--shadow);
+  flex-shrink: 0;
+}
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+.brand-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Stat pills */
+.stat-pills {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px var(--shadow);
+  white-space: nowrap;
+}
+.stat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stat-dot.green {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.stat-dot.grey  { background: #6b7280; }
+.stat-dot.blue  { background: #3b82f6; }
+@keyframes pulse-dot {
+  0%,100% { opacity:1; box-shadow: 0 0 4px #22c55e; }
+  50%      { opacity:.7; box-shadow: 0 0 10px #22c55e; }
+}
+.stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Right controls */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.ctrl-btn {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px var(--shadow);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s;
+  color: var(--text);
+}
+.ctrl-btn:hover { border-color: var(--text); }
+.ctrl-btn.active { background: var(--text); color: var(--bg); }
+
+/* ── ZOOM MODE BADGE ─────────────────────────────── */
+.zoom-badge {
+  position: fixed;
+  bottom: 36px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 6px 14px;
+  background: var(--pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border);
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  box-shadow: 0 4px 24px var(--shadow);
+}
+
+/* ── LEGEND ──────────────────────────────────────── */
+.legend {
+  position: fixed;
+  bottom: 36px; right: 16px;
+  z-index: 1000;
+  padding: 12px 16px;
+  background: var(--pill-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px var(--shadow);
+  font-size: 11px;
+  min-width: 140px;
+}
+.legend-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 5px; color: var(--text);
+}
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.legend-grad {
+  width: 100%; height: 5px; border-radius: 3px;
+  background: linear-gradient(90deg,#22c55e,#eab308,#ef4444);
+  margin-bottom:3px;
+}
+.legend-grad-labels {
+  display:flex; justify-content:space-between;
+  font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted);
+}
+.legend-sep { height:1px; background:var(--pill-border); margin:8px 0; }
+#zoom-mode-text { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:.5px; margin-top:4px; }
+
+/* ── SYNC BADGE ──────────────────────────────────── */
+.sync-badge {
+  position: fixed;
+  bottom: 36px; left: 16px;
+  z-index: 1000;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── CONFIG MODAL ────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--modal-bg);
+  border: 1px solid var(--pill-border);
+  border-radius: 14px;
+  padding: 28px;
+  width: 400px; max-width: 92vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+}
+.modal h2 { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 22px; }
+.fg { margin-bottom: 14px; }
+.fg label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; font-weight:500; }
+.fg input {
+  width:100%; padding:9px 12px;
+  background: var(--input-bg);
+  border: 1px solid var(--pill-border);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; outline: none;
+  transition: border-color .15s;
+}
+.fg input:focus { border-color: #3b82f6; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:22px; }
+.btn-primary {
+  padding:9px 20px; background:#3b82f6; color:white; border:none;
+  border-radius:7px; font-size:13px; font-weight:500; cursor:pointer;
+}
+.btn-primary:hover { background:#2563eb; }
+.btn-sec {
+  padding:9px 18px; background:transparent; color:var(--muted);
+  border:1px solid var(--pill-border); border-radius:7px; font-size:13px; cursor:pointer;
+}
+
+/* ── POPUP OVERRIDE ──────────────────────────────── */
+.leaflet-popup-content-wrapper {
+  background: var(--modal-bg) !important;
+  border: 1px solid var(--pill-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2) !important;
+  padding: 0 !important;
+}
+.leaflet-popup-tip-container { display:none; }
+.leaflet-popup-content { margin:0 !important; }
+.pop { padding:14px 16px; font-family:'Inter',sans-serif; min-width:190px; }
+.pop-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; }
+.pop-row { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:3px; }
+.pop-row span { color:var(--text); }
+.pop-status {
+  margin-top:10px; padding:5px 10px; border-radius:5px; text-align:center;
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+}
+.pop-status.online  { background:#22c55e20; color:#22c55e; }
+.pop-status.offline { background:#6b728020; color:#6b7280; }
+
+/* ── THEME VARIABLES ─────────────────────────────── */
+body.light {
+  --bg:           #f0f0f0;
+  --pill-bg:      rgba(255,255,255,0.88);
+  --pill-border:  rgba(0,0,0,0.10);
+  --shadow:       rgba(0,0,0,0.12);
+  --text:         #111827;
+  --muted:        #6b7280;
+  --modal-bg:     #ffffff;
+  --input-bg:     #f9fafb;
+}
+body.dark {
+  --bg:           #0a0c10;
+  --pill-bg:      rgba(17,19,25,0.88);
+  --pill-border:  rgba(255,255,255,0.10);
+  --shadow:       rgba(0,0,0,0.5);
+  --text:         #f3f4f6;
+  --muted:        #6b7280;
+  --modal-bg:     #111318;
+  --input-bg:     #0a0c10;
+}
+
+/* Leaflet zoom control style fix */
+.leaflet-control-zoom a {
+  background: var(--pill-bg) !important;
+  backdrop-filter: blur(12px);
+  color: var(--text) !important;
+  border-color: var(--pill-border) !important;
+}
+</style>
+</head>
+<body class="dark">
+
+<!-- FULL SCREEN MAP -->
+<div id="map"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand-pill">
+    <div>
+      <div class="brand-name">POS Network</div>
+      <div class="brand-sub">Coverage Map</div>
+    </div>
+  </div>
+
+  <div class="stat-pills">
+    <div class="stat-pill">
+      <div class="stat-dot green"></div>
+      <div class="stat-num" id="s-online">—</div>
+      <div class="stat-label">online</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-dot grey"></div>
+      <div class="stat-num" id="s-offline">—</div>
+      <div class="stat-label">offline</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-dot blue"></div>
+      <div class="stat-num" id="s-new">—</div>
+      <div class="stat-label">new this month</div>
+    </div>
+    <div class="stat-pill">
+      <div style="font-size:13px">📦</div>
+      <div class="stat-num" id="s-total">—</div>
+      <div class="stat-label">total</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <!-- Light/Dark toggle -->
+    <button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark map">🌙</button>
+    <!-- Config -->
+    <button class="ctrl-btn" onclick="openModal()" title="Configure API">⚙</button>
+  </div>
+</div>
+
+<!-- ZOOM MODE BADGE -->
+<div class="zoom-badge" id="zoom-badge">Heatmap — zoom in to see store dots</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-title">Heatmap density</div>
+  <div class="legend-grad"></div>
+  <div class="legend-grad-labels"><span>low</span><span>high</span></div>
+  <div class="legend-sep"></div>
+  <div class="legend-title">Store dots (zoom ≥ 11)</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e"></div>Online</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#6b7280"></div>Offline</div>
+  <div class="legend-sep"></div>
+  <div id="zoom-mode-text">zoom: 5</div>
+</div>
+
+<!-- SYNC -->
+<div class="sync-badge" id="sync-badge">—</div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>MongoDB Atlas Config</h2>
+    <div class="modal-sub">Direct connection — no server needed</div>
+    <div class="fg">
+      <label>Atlas App ID</label>
+      <input type="text" id="cfg-appid" placeholder="your-app-id-abcde">
+    </div>
+    <div class="fg">
+      <label>Data API Key</label>
+      <input type="password" id="cfg-key" placeholder="your-data-api-key">
+    </div>
+    <div class="fg">
+      <label>Database Name</label>
+      <input type="text" id="cfg-db" placeholder="pos_analytics">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveConfig()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── THEME ──────────────────────────────────────────────────────────────────────
+let isDark = localStorage.getItem('map_theme') !== 'light';
+
+const TILES = {
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+};
+
+function applyTheme() {
+  document.body.className = isDark ? 'dark' : 'light';
+  document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('map_theme', isDark ? 'dark' : 'light');
+  if (tileLayer) {
+    tileLayer.setUrl(isDark ? TILES.dark : TILES.light);
+  }
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  applyTheme();
+}
+
+// ── MAP INIT ───────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView([-2.5, 118], 5);
+let tileLayer = L.tileLayer(isDark ? TILES.dark : TILES.light, {
+  attribution: '© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+applyTheme();
+
+// ── CONFIG ─────────────────────────────────────────────────────────────────────
+let ATLAS_APP_ID = localStorage.getItem('pos_appid') || '';
+let ATLAS_KEY    = localStorage.getItem('pos_atlaskey') || '';
+let ATLAS_DB     = localStorage.getItem('pos_db') || 'pos_analytics';
+
+// ── STATE ──────────────────────────────────────────────────────────────────────
+const DOT_ZOOM   = 11;
+const OFFLINE_MS = 75 * 60 * 1000;  // 75 min = 1 hour cycle + 15 min tolerance
+let heatLayer    = null;
+let dotGroup     = null;
+let allPoints    = [];
+let currentFilter= 'all';
+
+// ── ATLAS DATA API HELPER ──────────────────────────────────────────────────────
+async function atlasFind(filter = {}, projection = {}, limit = 5000) {
+  const res = await fetch(
+    `https://data.mongodb-api.com/app/${ATLAS_APP_ID}/endpoint/data/v1/action/find`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'api-key': ATLAS_KEY },
+      body: JSON.stringify({
+        dataSource: 'Cluster0',
+        database:   ATLAS_DB,
+        collection: 'devices',
+        filter, projection, limit,
+      })
+    }
+  );
+  if (!res.ok) throw new Error('Atlas ' + res.status);
+  const data = await res.json();
+  return data.documents || [];
+}
+
+// ── FETCH ──────────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  if (!ATLAS_APP_ID || !ATLAS_KEY) { loadDemo(); return; }
+  try {
+    // Fetch all devices (one doc per device, tiny payload)
+    const docs = await atlasFind({}, {
+      device_id:1, store_name:1, latitude:1, longitude:1,
+      city:1, last_ping:1, first_seen:1, _id:0
+    });
+
+    if (!docs.length) { loadDemo(); return; }
+
+    const now      = Date.now();
+    const d30      = new Date(now - 30 * 86400000);
+    let online=0, newMonth=0;
+
+    allPoints = docs
+      .filter(d => d.latitude && d.longitude)
+      .map(d => {
+        const lastPingMs  = new Date(d.last_ping?.$date || d.last_ping).getTime();
+        const firstSeenMs = new Date(d.first_seen?.$date || d.first_seen).getTime();
+        const isOnline    = (now - lastPingMs) < OFFLINE_MS;
+        const daysSince   = (now - lastPingMs) / 86400000;
+        const status      = daysSince <= 30 ? 'active' : daysSince <= 60 ? 'risk' : 'churned';
+        if (isOnline) online++;
+        if (firstSeenMs >= d30) newMonth++;
+        return {
+          lat: d.latitude, lng: d.longitude,
+          is_online: isOnline, status,
+          device_id: d.device_id, store_name: d.store_name,
+          city: d.city, last_ping: d.last_ping?.$date || d.last_ping,
+        };
+      });
+
+    renderStats({ total: docs.length, online, new_this_month: newMonth });
+    updateMapLayer();
+    setSyncBadge('Synced ' + new Date().toLocaleTimeString());
+  } catch(e) {
+    setSyncBadge('⚠ ' + e.message + ' — showing demo');
+    loadDemo();
+  }
+}
+
+// ── STATS ──────────────────────────────────────────────────────────────────────
+function renderStats(s) {
+  const offline = (s.total || 0) - (s.online || 0);
+  set('s-online', fmt(s.online));
+  set('s-offline', fmt(Math.max(0, offline)));
+  set('s-new', fmt(s.new_this_month));
+  set('s-total', fmt(s.total));
+}
+
+// ── MAP LAYERS ─────────────────────────────────────────────────────────────────
+function updateMapLayer() {
+  const zoom     = map.getZoom();
+  const filtered = currentFilter === 'all' ? allPoints
+                 : allPoints.filter(p => currentFilter === 'online' ? p.is_online
+                                       : currentFilter === 'offline' ? !p.is_online
+                                       : p.status === currentFilter);
+  if (zoom < DOT_ZOOM) {
+    removeDots();
+    showHeatmap(filtered);
+    set('zoom-badge', 'Heatmap view — zoom in past level ' + DOT_ZOOM + ' to see individual stores');
+    set('zoom-mode-text', 'zoom: ' + zoom + ' · heatmap mode');
+  } else {
+    removeHeat();
+    showDots(filtered);
+    set('zoom-badge', 'Store dot view (zoom ' + zoom + ') — click a dot for details');
+    set('zoom-mode-text', 'zoom: ' + zoom + ' · dot mode');
+  }
+}
+
+function showHeatmap(pts) {
+  removeHeat();
+  if (!pts.length) return;
+  heatLayer = L.heatLayer(
+    pts.map(p => [p.lat, p.lng, p.is_online ? 1.0 : 0.3]),
+    { radius:35, blur:25, maxZoom:DOT_ZOOM-1,
+      gradient:{ 0.0:'#22c55e', 0.5:'#eab308', 1.0:'#ef4444' } }
+  ).addTo(map);
+}
+
+function showDots(pts) {
+  removeDots();
+  if (!pts.length) return;
+  dotGroup = L.layerGroup();
+  pts.forEach(p => {
+    const online = p.is_online;
+    const color  = online ? '#22c55e' : '#6b7280';
+    const glow   = online ? '0 0 8px 2px #22c55e88' : 'none';
+    const icon   = L.divIcon({
+      className: '',
+      html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};
+               border:2px solid rgba(255,255,255,.5);box-shadow:${glow};cursor:pointer"></div>`,
+      iconSize: [12,12], iconAnchor: [6,6], popupAnchor: [0,-8]
+    });
+    const ago = p.last_ping ? timeAgo(new Date(p.last_ping).getTime()) : '—';
+    const popup = `<div class="pop">
+      <div class="pop-name">${p.store_name || p.device_id || 'Unknown'}</div>
+      <div class="pop-row">ID: <span>${p.device_id || '—'}</span></div>
+      <div class="pop-row">Last ping: <span>${ago}</span></div>
+      <div class="pop-row">City: <span>${p.city || '—'}</span></div>
+      <div class="pop-status ${online?'online':'offline'}">${online?'● ONLINE':'○ OFFLINE (>15 min)'}</div>
+    </div>`;
+    L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth:220 }).addTo(dotGroup);
+  });
+  dotGroup.addTo(map);
+}
+
+function removeHeat() { if (heatLayer) { map.removeLayer(heatLayer); heatLayer=null; } }
+function removeDots()  { if (dotGroup)  { map.removeLayer(dotGroup);  dotGroup=null;  } }
+
+map.on('zoomend', updateMapLayer);
+map.on('zoom',    () => set('zoom-mode-text', 'zoom: ' + Math.round(map.getZoom())));
+
+// ── DEMO DATA ──────────────────────────────────────────────────────────────────
+function loadDemo() {
+  renderStats({ total:84320, online:3240, new_this_month:3420 });
+
+  const cities = [
+    { lat:-6.21, lng:106.84, n:120 }, // Jakarta
+    { lat:-7.25, lng:112.75, n:90  }, // Surabaya
+    { lat:-6.92, lng:107.61, n:70  }, // Bandung
+    { lat:3.60,  lng:98.67,  n:50  }, // Medan
+    { lat:-5.15, lng:119.43, n:40  }, // Makassar
+    { lat:-6.97, lng:110.42, n:35  }, // Semarang
+    { lat:-2.98, lng:104.78, n:30  }, // Palembang
+    { lat:-7.80, lng:110.37, n:25  }, // Yogyakarta
+  ];
+  const names = ['Toko Maju','Warung Jaya','Mini Market','Apotek Sehat','Restoran Padang',
+                 'Butik Cantik','Swalayan','Depot Baru','Kios Utama','Toko Berkah'];
+
+  allPoints = [];
+  cities.forEach(c => {
+    for (let i=0; i<c.n; i++) {
+      const online = Math.random() > 0.62;
+      const minsAgo = online
+        ? Math.floor(Math.random()*14)
+        : Math.floor(Math.random()*60*24*30)+16;
+      allPoints.push({
+        lat: c.lat + (Math.random()-.5)*1.8,
+        lng: c.lng + (Math.random()-.5)*1.8,
+        is_online: online,
+        status: online ? 'active' : Math.random()>.5 ? 'risk' : 'churned',
+        device_id: 'POS-'+Math.random().toString(36).substring(2,8).toUpperCase(),
+        store_name: names[Math.floor(Math.random()*names.length)],
+        city: ['Jakarta','Surabaya','Bandung','Medan','Makassar','Semarang','Palembang','Yogyakarta'][cities.indexOf(c)],
+        last_ping: new Date(Date.now()-minsAgo*60000).toISOString(),
+      });
+    }
+  });
+
+  updateMapLayer();
+  setSyncBadge('Demo data — click ⚙ to connect your server');
+}
+
+// ── MODAL ──────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('cfg-appid').value = ATLAS_APP_ID;
+  document.getElementById('cfg-key').value   = ATLAS_KEY;
+  document.getElementById('cfg-db').value    = ATLAS_DB;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function saveConfig() {
+  ATLAS_APP_ID = document.getElementById('cfg-appid').value.trim();
+  ATLAS_KEY    = document.getElementById('cfg-key').value.trim();
+  ATLAS_DB     = document.getElementById('cfg-db').value.trim() || 'pos_analytics';
+  localStorage.setItem('pos_appid',    ATLAS_APP_ID);
+  localStorage.setItem('pos_atlaskey', ATLAS_KEY);
+  localStorage.setItem('pos_db',       ATLAS_DB);
+  closeModal();
+  fetchAll();
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+function set(id, txt) { const el=document.getElementById(id); if(el) el.textContent=txt; }
+function setSyncBadge(txt) { set('sync-badge', txt); }
+function fmt(n) {
+  if (n===undefined||n===null) return '—';
+  if (n>=1000000) return (n/1000000).toFixed(1)+'M';
+  if (n>=1000)    return (n/1000).toFixed(1)+'K';
+  return String(n);
+}
+function timeAgo(ts) {
+  const s = Math.floor((Date.now()-ts)/1000);
+  if (s<60)    return s+'s ago';
+  if (s<3600)  return Math.floor(s/60)+'m ago';
+  if (s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+// ── AUTO REFRESH ───────────────────────────────────────────────────────────────
+fetchAll();
+setInterval(fetchAll, 60 * 1000); // refresh every 60s
+</script>
+</body>
+</html>
