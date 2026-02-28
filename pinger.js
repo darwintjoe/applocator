@@ -1,51 +1,46 @@
 /**
- * POS Tracker — Ping Module v3.0
- * Direct to MongoDB Atlas Data API. No middleware, no server.
+ * POS Tracker — Ping Module v4.0
+ * Cloudflare Worker Edition
  *
- * SETUP:
- *   1. MongoDB Atlas → App Services → Create App → Enable Data API
- *   2. Create an API key with readWrite on your database
- *   3. Paste your App ID and API key below (or pass via config)
+ * Direct ping to your Cloudflare Worker.
+ * No middleware, no database credentials in client.
+ * One upsert per ping. Tiny payload.
  *
  * USAGE:
  *   const tracker = new POSTracker({
- *     mongoAppId: 'your-atlas-app-id',       // from Atlas App Services
- *     mongoApiKey: 'your-data-api-key',       // from Atlas App Services
- *     database:   'pos_analytics',            // your DB name
- *     deviceId:   'POS-STORE-001',            // unique per device
- *     storeName:  'Toko Maju Jaya',           // optional
+ *     workerUrl: 'https://pos-coverage.YOUR-SUBDOMAIN.workers.dev',
+ *     deviceKey:  'your-device-secret-key',
+ *     deviceId:   'POS-STORE-001',       // optional — auto-generated if omitted
+ *     storeName:  'Toko Maju Jaya',      // optional
  *   });
- *
- *   tracker.start();   // call on app open / user login
- *   tracker.stop();    // call on app close / user logout
+ *   tracker.start();   // on app open / user login
+ *   tracker.stop();    // on app close / user logout
  *
  * PING BEHAVIOUR:
- *   - Pings immediately on start()
- *   - Then every 1 hour while app is open
- *   - Also pings when user returns to app (visibility change)
- *   - One document per device (upsert) — storage stays tiny
- *   - Grey dot after 75 min no ping (1 cycle + 15 min tolerance)
+ *   - Immediate ping on start()
+ *   - Every 1 hour while app is open
+ *   - Extra ping when user returns to app (visibility change)
+ *   - GPS unavailable? Still pings — server keeps last known location
+ *   - One document per device — storage stays minimal
  */
 
 class POSTracker {
   constructor(config = {}) {
-    this.appId     = config.mongoAppId  || '';
-    this.apiKey    = config.mongoApiKey || '';
-    this.database  = config.database    || 'pos_analytics';
-    this.collection= config.collection  || 'devices';
-    this.deviceId  = config.deviceId    || this._getOrCreateDeviceId();
-    this.storeName = config.storeName   || '';
-    this.interval  = config.interval    || 60 * 60 * 1000; // 1 hour
+    if (!config.workerUrl) throw new Error('[POSTracker] workerUrl is required');
+    if (!config.deviceKey) throw new Error('[POSTracker] deviceKey is required');
 
-    this.onSuccess = config.onSuccess   || null;
-    this.onError   = config.onError     || null;
+    this.url       = config.workerUrl.replace(/\/$/, '') + '/ping';
+    this.deviceKey = config.deviceKey;
+    this.deviceId  = config.deviceId  || this._getOrCreateId();
+    this.storeName = config.storeName || '';
+    this.interval  = config.interval  || 60 * 60 * 1000; // 1 hour
+
+    this.onSuccess = config.onSuccess || null;
+    this.onError   = config.onError   || null;
 
     this._timer      = null;
-    this._running    = false;
     this._visHandler = null;
-
-    // Base URL for MongoDB Atlas Data API
-    this._baseUrl = `https://data.mongodb-api.com/app/${this.appId}/endpoint/data/v1`;
+    this._running    = false;
   }
 
   // ── PUBLIC ──────────────────────────────────────────────────────────────────
@@ -59,7 +54,7 @@ class POSTracker {
       if (document.visibilityState === 'visible') this._ping();
     };
     document.addEventListener('visibilitychange', this._visHandler);
-    console.log(`[POSTracker] Started — ${this.deviceId} — every ${this.interval/60000} min`);
+    console.log(`[POSTracker] Started — ${this.deviceId}`);
   }
 
   stop() {
@@ -79,74 +74,45 @@ class POSTracker {
   // ── PRIVATE ─────────────────────────────────────────────────────────────────
 
   async _ping() {
-    const now = new Date().toISOString();
-    const update = {
-      $set: {
-        last_ping:  { $date: now },
-        store_name: this.storeName,
-      },
-      $setOnInsert: {
-        device_id:  this.deviceId,
-        first_seen: { $date: now },
-      }
+    const payload = {
+      device_id:  this.deviceId,
+      store_name: this.storeName,
     };
 
-    // Attach location if available
+    // Try GPS — silently skip if unavailable
     try {
-      const pos = await this._getLocation();
-      update.$set.latitude  = pos.coords.latitude;
-      update.$set.longitude = pos.coords.longitude;
-      update.$set.location  = {
-        type: 'Point',
-        coordinates: [pos.coords.longitude, pos.coords.latitude]
-      };
-    } catch (e) {
-      // No GPS — that's fine, keep last known location on file
-    }
+      const pos = await this._gps();
+      payload.latitude  = pos.coords.latitude;
+      payload.longitude = pos.coords.longitude;
+      payload.accuracy  = pos.coords.accuracy;
+    } catch (_) {}
 
     try {
-      const res = await fetch(`${this._baseUrl}/action/updateOne`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': this.apiKey,
-        },
-        body: JSON.stringify({
-          dataSource: 'Cluster0',
-          database:   this.database,
-          collection: this.collection,
-          filter:     { device_id: this.deviceId },
-          update,
-          upsert:     true,
-        }),
+      const res = await fetch(this.url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': this.deviceKey },
+        body:    JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Atlas ${res.status}: ${err}`);
-      }
-
-      const result = await res.json();
-      if (this.onSuccess) this.onSuccess({ device_id: this.deviceId, timestamp: now, ...result });
-      console.log(`[POSTracker] ✓ ${now}`);
-
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (this.onSuccess) this.onSuccess({ ...payload, ...data });
+      console.log(`[POSTracker] ✓ ping OK`);
     } catch (err) {
       if (this.onError) this.onError(err);
-      console.error('[POSTracker] ✗', err.message);
+      console.warn(`[POSTracker] ✗ ping failed — ${err.message}`);
     }
   }
 
-  _getLocation() {
+  _gps() {
     return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) { reject(new Error('GPS N/A')); return; }
-      navigator.geolocation.getCurrentPosition(resolve,
-        e => reject(new Error(`GPS(${e.code})`)),
+      if (!navigator.geolocation) { reject(); return; }
+      navigator.geolocation.getCurrentPosition(resolve, reject,
         { enableHighAccuracy: false, timeout: 8000, maximumAge: 3600000 }
       );
     });
   }
 
-  _getOrCreateDeviceId() {
+  _getOrCreateId() {
     const KEY = 'pos_device_id';
     let id = localStorage.getItem(KEY);
     if (!id) {
@@ -157,6 +123,6 @@ class POSTracker {
   }
 }
 
-// Export for Node / Capacitor / browser
+// Export for all environments
 if (typeof module !== 'undefined' && module.exports) module.exports = POSTracker;
 if (typeof window  !== 'undefined') window.POSTracker = POSTracker;
