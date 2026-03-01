@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="POS Ping">
+<title>POS Ping Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f172a; --surface:#1e293b; --border:#334155;
+  --text:#f1f5f9; --muted:#64748b;
+  --green:#22c55e; --red:#ef4444; --blue:#3b82f6; --yellow:#eab308; --purple:#a855f7;
+  --fm:'JetBrains Mono',monospace; --fs:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--fs);min-height:100vh;
+  padding-top:env(safe-area-inset-top);padding-bottom:calc(env(safe-area-inset-bottom) + 16px)}
+
+/* HEADER */
+.hdr{padding:20px 20px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:17px;font-weight:600}
+.hdr-sub{font-family:var(--fm);font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:2px;text-transform:uppercase}
+.ring{width:52px;height:52px;border-radius:50%;border:2px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .4s;flex-shrink:0}
+.ring.active{border-color:var(--green);box-shadow:0 0 0 4px #22c55e20;animation:rp 2s ease-in-out infinite}
+.ring.registering{border-color:var(--purple);box-shadow:0 0 0 4px #a855f720;animation:rp2 1s ease-in-out infinite}
+.ring.error{border-color:var(--red)}
+@keyframes rp{0%,100%{box-shadow:0 0 0 4px #22c55e20}50%{box-shadow:0 0 0 12px transparent}}
+@keyframes rp2{0%,100%{box-shadow:0 0 0 4px #a855f720}50%{box-shadow:0 0 0 12px transparent}}
+.ring-icon{font-size:20px;line-height:1}
+.ring-lbl{font-family:var(--fm);font-size:7px;color:var(--muted);letter-spacing:1px;margin-top:1px;text-transform:uppercase}
+
+/* SECTIONS */
+.sec{padding:16px 20px;border-bottom:1px solid var(--border)}
+.sec-title{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+
+/* DEVICE ID BADGE — hero element */
+.did-badge{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px 20px;margin-bottom:0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.did-label{font-family:var(--fm);font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.did-value{font-family:var(--fm);font-size:28px;font-weight:500;letter-spacing:4px;color:var(--green)}
+.did-value.unregistered{color:var(--muted);font-size:14px;letter-spacing:1px}
+.did-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.copy-btn{font-size:11px;color:var(--blue);background:none;border:1px solid var(--border);
+  border-radius:6px;cursor:pointer;padding:5px 10px;font-family:var(--fm)}
+.reset-btn{font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;
+  padding:2px 4px;font-family:var(--fm);text-decoration:underline}
+
+/* REGISTRATION STATUS */
+.reg-status{
+  margin-top:10px;padding:8px 12px;border-radius:8px;
+  font-family:var(--fm);font-size:10px;line-height:1.6;
+}
+.reg-status.pending{background:#a855f710;border:1px solid #a855f730;color:var(--purple)}
+.reg-status.done{background:#22c55e10;border:1px solid #22c55e30;color:var(--green)}
+.reg-status.none{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+
+/* FORM */
+.fg{margin-bottom:12px}.fg:last-child{margin-bottom:0}
+.fg label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.fg input{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:var(--fm);font-size:12px;outline:none;transition:border-color .15s}
+.fg input:focus{border-color:var(--blue)}
+.hint{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--fm)}
+
+/* GPS GRID */
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.loc-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.loc-lbl{font-family:var(--fm);font-size:9px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:1px}
+.loc-val{font-family:var(--fm);font-size:12px;font-weight:500}
+.loc-val.ok{color:var(--green)}.loc-val.err{color:var(--red);font-size:10px}
+
+/* BUTTONS */
+.btn{width:100%;padding:15px;border:none;border-radius:10px;font-family:var(--fs);
+  font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.start{background:var(--green);color:#0f172a}
+.btn.stop{background:var(--red);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:not(:disabled):active{transform:scale(.98)}
+.btn2{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;
+  background:transparent;color:var(--blue);font-family:var(--fs);font-size:14px;
+  font-weight:500;cursor:pointer;margin-top:8px;transition:all .15s}
+.btn2:disabled{opacity:.35;cursor:not-allowed}
+.btn2:not(:disabled):active{background:var(--surface)}
+
+/* COUNTDOWN */
+.cd-row{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;margin-top:8px;font-family:var(--fm);font-size:11px;color:var(--muted)}
+.cd{color:var(--green);font-weight:500}.cd.off{color:var(--border)}
+
+/* LOG */
+.log{background:var(--bg);border-radius:8px;padding:12px;max-height:220px;
+  overflow-y:auto;font-family:var(--fm);font-size:11px;line-height:1.9}
+.log::-webkit-scrollbar{width:3px}
+.log::-webkit-scrollbar-thumb{background:var(--border)}
+.le{display:flex;gap:8px}
+.lt{color:var(--muted);flex-shrink:0;width:64px;font-size:10px}
+.lm.ok{color:var(--green)}.lm.err{color:var(--red)}
+.lm.warn{color:var(--yellow)}.lm.info{color:var(--text)}.lm.reg{color:var(--purple)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <div class="hdr-title">POS Ping Tester</div>
+    <div class="hdr-sub">Cloudflare Worker · v5.0</div>
+  </div>
+  <div class="ring" id="ring">
+    <div class="ring-icon">📍</div>
+    <div class="ring-lbl" id="ring-lbl">IDLE</div>
+  </div>
+</div>
+
+<!-- DEVICE ID — hero section -->
+<div class="sec">
+  <div class="sec-title">Assigned Device ID</div>
+  <div class="did-badge">
+    <div>
+      <div class="did-label">Device ID</div>
+      <div class="did-value unregistered" id="did">NOT REGISTERED</div>
+    </div>
+    <div class="did-actions">
+      <button class="copy-btn" id="copy-btn" onclick="copyId()" style="display:none">Copy</button>
+      <button class="reset-btn" onclick="resetId()" title="Clear ID and re-register on next start">reset ID</button>
+    </div>
+  </div>
+  <div class="reg-status none" id="reg-status">
+    Start tracking to register this device with the server.
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="sec">
+  <div class="sec-title">Cloudflare Worker Config</div>
+  <div class="fg">
+    <label>Worker URL</label>
+    <input type="url" id="f-url" placeholder="https://pos-coverage.your-name.workers.dev">
+    <div class="hint">No trailing slash</div>
+  </div>
+  <div class="fg">
+    <label>Device API Key</label>
+    <input type="password" id="f-key" placeholder="your DEVICE_KEY secret">
+  </div>
+  <div class="fg">
+    <label>Store Name <span style="color:var(--muted);font-weight:400">(sent on register + every ping)</span></label>
+    <input type="text" id="f-store" placeholder="e.g. Toko Maju Jaya">
+  </div>
+</div>
+
+<!-- GPS -->
+<div class="sec">
+  <div class="sec-title">GPS Location</div>
+  <div class="loc-grid">
+    <div class="loc-box"><div class="loc-lbl">Latitude</div><div class="loc-val" id="l-lat">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">Longitude</div><div class="loc-val" id="l-lng">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">Accuracy</div><div class="loc-val" id="l-acc">—</div></div>
+    <div class="loc-box"><div class="loc-lbl">GPS</div><div class="loc-val" id="l-gps">—</div></div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="sec">
+  <div class="sec-title">Controls</div>
+  <button class="btn start" id="toggle-btn" onclick="toggle()">▶ Start Tracking</button>
+  <button class="btn2" id="force-btn" onclick="forcePing()" disabled>⚡ Force Ping Now</button>
+  <div class="cd-row">
+    <span>Next ping in</span>
+    <span class="cd off" id="cd">—</span>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="sec" style="border:none">
+  <div class="sec-title">Activity Log</div>
+  <div class="log" id="log">
+    <div class="le"><span class="lt">—</span><span class="lm info">Ready. Fill config and press Start.</span></div>
+  </div>
+</div>
+
+<script>
+const INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const ID_KEY      = 'pos_device_id';
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('f-url').value   = localStorage.getItem('pt_url')   || '';
+document.getElementById('f-key').value   = localStorage.getItem('pt_key')   || '';
+document.getElementById('f-store').value = localStorage.getItem('pt_store') || '';
+refreshIdDisplay();
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let running = false, timer = null, cdTimer = null, nextPing = null, visHandler = null;
+
+// ── ID DISPLAY ────────────────────────────────────────────────────────────────
+function refreshIdDisplay() {
+  const id = localStorage.getItem(ID_KEY);
+  const el = document.getElementById('did');
+  if (id) {
+    el.textContent  = id;
+    el.className    = 'did-value';
+    document.getElementById('copy-btn').style.display = 'block';
+    setRegStatus('done', `✓ Registered — ID assigned by server`);
+  } else {
+    el.textContent = 'NOT REGISTERED';
+    el.className   = 'did-value unregistered';
+    document.getElementById('copy-btn').style.display = 'none';
+    setRegStatus('none', 'Start tracking to register this device with the server.');
+  }
+}
+
+function setRegStatus(type, msg) {
+  const el = document.getElementById('reg-status');
+  el.className   = 'reg-status ' + type;
+  el.textContent = msg;
+}
+
+function copyId() {
+  const id = localStorage.getItem(ID_KEY);
+  if (!id) return;
+  navigator.clipboard.writeText(id).then(() => {
+    const b = document.getElementById('copy-btn');
+    b.textContent = 'Copied!';
+    setTimeout(() => b.textContent = 'Copy', 1500);
+  });
+}
+
+function resetId() {
+  if (!confirm('Clear device ID? Next start will register as a NEW device with a new ID.')) return;
+  localStorage.removeItem(ID_KEY);
+  refreshIdDisplay();
+  addLog('⚠ Device ID cleared — will re-register on next Start', 'warn');
+}
+
+// ── REGISTER ──────────────────────────────────────────────────────────────────
+async function ensureRegistered() {
+  if (localStorage.getItem(ID_KEY)) return true; // already done
+
+  const url   = document.getElementById('f-url').value.trim().replace(/\/$/,'');
+  const key   = document.getElementById('f-key').value.trim();
+  const store = document.getElementById('f-store').value.trim();
+  if (!url || !key) { addLog('⚠ Missing Worker URL or API key', 'warn'); return false; }
+
+  setRing('registering');
+  setRegStatus('pending', '⏳ Registering with server — assigning your device ID...');
+  addLog('Registering with server...', 'reg');
+
+  const payload = { store_name: store };
+
+  // Try GPS for registration
+  try {
+    const pos = await gps();
+    payload.latitude  = pos.coords.latitude;
+    payload.longitude = pos.coords.longitude;
+    payload.accuracy  = pos.coords.accuracy;
+  } catch(_) {}
+
+  try {
+    const res = await fetch(url + '/register', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    localStorage.setItem(ID_KEY, data.device_id);
+    refreshIdDisplay();
+    addLog('✓ Registered — ID assigned: ' + data.device_id, 'reg');
+    return true;
+
+  } catch(e) {
+    setRegStatus('pending', '✗ Registration failed — ' + e.message);
+    addLog('✗ Registration failed: ' + e.message, 'err');
+    setRing('error');
+    return false;
+  }
+}
+
+// ── PING ──────────────────────────────────────────────────────────────────────
+async function sendPing() {
+  const device_id = localStorage.getItem(ID_KEY);
+  const url       = document.getElementById('f-url').value.trim().replace(/\/$/,'');
+  const key       = document.getElementById('f-key').value.trim();
+  const store     = document.getElementById('f-store').value.trim();
+  if (!device_id || !url || !key) return;
+
+  const payload = { device_id, store_name: store };
+
+  // GPS
+  try {
+    const pos = await gps();
+    payload.latitude  = pos.coords.latitude;
+    payload.longitude = pos.coords.longitude;
+    payload.accuracy  = pos.coords.accuracy;
+    document.getElementById('l-lat').textContent = pos.coords.latitude.toFixed(6);
+    document.getElementById('l-lat').className   = 'loc-val ok';
+    document.getElementById('l-lng').textContent = pos.coords.longitude.toFixed(6);
+    document.getElementById('l-lng').className   = 'loc-val ok';
+    document.getElementById('l-acc').textContent = pos.coords.accuracy ? '±'+Math.round(pos.coords.accuracy)+'m' : '—';
+    document.getElementById('l-gps').textContent = 'OK';
+    document.getElementById('l-gps').className   = 'loc-val ok';
+  } catch(e) {
+    document.getElementById('l-gps').textContent = 'Unavailable';
+    document.getElementById('l-gps').className   = 'loc-val err';
+  }
+
+  try {
+    const res = await fetch(url + '/ping', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    addLog('✓ Ping OK — ' + device_id, 'ok');
+    setRing('active');
+    nextPing = Date.now() + INTERVAL_MS;
+  } catch(e) {
+    addLog('✗ ' + e.message, 'err');
+    setRing('error');
+  }
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+function toggle() { running ? stopTracking() : startTracking(); }
+
+async function startTracking() {
+  // Save config
+  localStorage.setItem('pt_url',   document.getElementById('f-url').value.trim());
+  localStorage.setItem('pt_key',   document.getElementById('f-key').value.trim());
+  localStorage.setItem('pt_store', document.getElementById('f-store').value.trim());
+
+  running = true;
+  document.getElementById('toggle-btn').innerHTML = '■ Stop Tracking';
+  document.getElementById('toggle-btn').className = 'btn stop';
+
+  // Register first if needed
+  const ok = await ensureRegistered();
+  if (!ok) { stopTracking(); return; }
+
+  // Start pinging
+  nextPing = Date.now() + INTERVAL_MS;
+  await sendPing();
+  timer = setInterval(sendPing, INTERVAL_MS);
+
+  visHandler = () => { if (document.visibilityState === 'visible') sendPing(); };
+  document.addEventListener('visibilitychange', visHandler);
+
+  document.getElementById('force-btn').disabled = false;
+  startCd();
+  addLog('▶ Tracking — pinging every 1 hour', 'info');
+}
+
+function stopTracking() {
+  running = false;
+  clearInterval(timer); timer = null;
+  clearInterval(cdTimer); cdTimer = null;
+  if (visHandler) { document.removeEventListener('visibilitychange', visHandler); visHandler = null; }
+
+  document.getElementById('toggle-btn').innerHTML = '▶ Start Tracking';
+  document.getElementById('toggle-btn').className = 'btn start';
+  document.getElementById('force-btn').disabled   = true;
+  document.getElementById('cd').textContent = '—';
+  document.getElementById('cd').className   = 'cd off';
+  setRing('idle');
+  addLog('■ Stopped', 'warn');
+}
+
+async function forcePing() {
+  addLog('⚡ Force ping...', 'info');
+  await sendPing();
+  nextPing = Date.now() + INTERVAL_MS;
+}
+
+function startCd() {
+  if (cdTimer) clearInterval(cdTimer);
+  cdTimer = setInterval(() => {
+    if (!nextPing) return;
+    const rem = nextPing - Date.now();
+    if (rem <= 0) { document.getElementById('cd').textContent = 'pinging...'; return; }
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+    document.getElementById('cd').textContent = m + 'm ' + String(s).padStart(2,'0') + 's';
+    document.getElementById('cd').className   = 'cd';
+  }, 1000);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setRing(state) {
+  const icons = { idle:'📍', active:'🟢', registering:'🔄', error:'🔴' };
+  document.getElementById('ring').className = 'ring ' + state;
+  document.getElementById('ring').querySelector('.ring-icon').textContent = icons[state] || '📍';
+  document.getElementById('ring-lbl').textContent = state.toUpperCase();
+}
+
+function addLog(msg, type='info') {
+  const el = document.getElementById('log');
+  const d  = document.createElement('div');
+  d.className = 'le';
+  d.innerHTML = `<span class="lt">${new Date().toLocaleTimeString()}</span><span class="lm ${type}">${msg}</span>`;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+function gps() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) { rej(); return; }
+    navigator.geolocation.getCurrentPosition(res, rej,
+      { enableHighAccuracy:false, timeout:8000, maximumAge:3600000 });
+  });
+}
+
+// PWA manifest
+const mf = { name:'POS Ping Tester', short_name:'POS Ping', start_url:'.', display:'standalone',
+  background_color:'#0f172a', theme_color:'#0f172a',
+  icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E%F0%9F%93%8D%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml'}]};
+const blob = new Blob([JSON.stringify(mf)],{type:'application/json'});
+const lnk = document.createElement('link'); lnk.rel='manifest'; lnk.href=URL.createObjectURL(blob);
+document.head.appendChild(lnk);
+</script>
+</body>
+</html>
