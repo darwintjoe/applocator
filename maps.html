@@ -341,17 +341,30 @@ body.dark {
   </div>
 </div>
 
-<!-- RIGHT CONTROL COLUMN (theme + config) -->
-<!-- Locate me + zoom are positioned here too but zoom uses Leaflet native -->
+<!-- RIGHT CONTROL COLUMN -->
 <div class="ctrl-col">
   <button class="ctrl-btn" onclick="locateMe()" title="My location">
-    <!-- crosshair SVG — universally recognized -->
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/>
       <line x1="12" y1="2" x2="12" y2="6"/>
       <line x1="12" y1="18" x2="12" y2="22"/>
       <line x1="2" y1="12" x2="6" y2="12"/>
       <line x1="18" y1="12" x2="22" y2="12"/>
+    </svg>
+  </button>
+  <!-- Layer toggle: dots ↔ heatmap -->
+  <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Switch dots / heatmap">
+    <svg id="layer-icon-dot" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5"  cy="12" r="2" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="6"  r="2" fill="currentColor" stroke="none"/>
+      <circle cx="19" cy="15" r="2" fill="currentColor" stroke="none"/>
+      <circle cx="9"  cy="18" r="2" fill="currentColor" stroke="none"/>
+      <circle cx="16" cy="10" r="2" fill="currentColor" stroke="none"/>
+    </svg>
+    <svg id="layer-icon-heat" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+      <ellipse cx="12" cy="12" rx="4" ry="4" fill="currentColor" opacity=".9" stroke="none"/>
+      <ellipse cx="12" cy="12" rx="8" ry="7" fill="currentColor" opacity=".35" stroke="none"/>
+      <ellipse cx="12" cy="12" rx="12" ry="10" fill="currentColor" opacity=".12" stroke="none"/>
     </svg>
   </button>
   <button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()" title="Light / dark">☀️</button>
@@ -444,11 +457,35 @@ let WORKER_URL = localStorage.getItem('pos_worker_url') || '';
 let DASH_KEY   = localStorage.getItem('pos_dash_key')   || '';
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
-const DOT_ZOOM   = 5;            // ≥5 = dots, <5 = heatmap
 const OFFLINE_MS = 75 * 60 * 1000;
 let heatLayer    = null;
 let dotGroup     = null;
 let allPoints    = [];
+let showDotView  = localStorage.getItem('map_layer') !== 'heat'; // default: dots
+
+// ── LAYER TOGGLE ───────────────────────────────────────────────────────────────
+function toggleLayer() {
+  showDotView = !showDotView;
+  localStorage.setItem('map_layer', showDotView ? 'dot' : 'heat');
+  applyLayer();
+}
+
+function applyLayer() {
+  const btn = document.getElementById('layer-btn');
+  if (showDotView) {
+    removeHeat(); showDots(allPoints);
+    document.getElementById('layer-icon-dot').style.display  = 'block';
+    document.getElementById('layer-icon-heat').style.display = 'none';
+    btn.title = 'Switch to heatmap';
+    set('zoom-badge', 'Dot view — tap a dot for info');
+  } else {
+    removeDots(); showHeatmap(allPoints);
+    document.getElementById('layer-icon-dot').style.display  = 'none';
+    document.getElementById('layer-icon-heat').style.display = 'block';
+    btn.title = 'Switch to dots';
+    set('zoom-badge', 'Heatmap view');
+  }
+}
 
 // ── FETCH ──────────────────────────────────────────────────────────────────────
 async function fetchAll() {
@@ -491,18 +528,7 @@ function renderStats(s) {
 }
 
 // ── MAP LAYERS ─────────────────────────────────────────────────────────────────
-function updateMapLayer() {
-  const zoom = map.getZoom();
-  if (zoom < DOT_ZOOM) {
-    removeDots();
-    showHeatmap(allPoints);
-    set('zoom-badge', 'Heatmap — zoom in to see stores');
-  } else {
-    removeHeat();
-    showDots(allPoints);
-    set('zoom-badge', 'Dot view (zoom ' + zoom + ') — tap a dot for info');
-  }
-}
+function updateMapLayer() { applyLayer(); }
 
 function showHeatmap(pts) {
   removeHeat();
@@ -542,8 +568,6 @@ function showDots(pts) {
 
 function removeHeat() { if (heatLayer) { map.removeLayer(heatLayer); heatLayer=null; } }
 function removeDots()  { if (dotGroup)  { map.removeLayer(dotGroup);  dotGroup=null;  } }
-
-map.on('zoomend', updateMapLayer);
 
 // ── LOCATE ME ──────────────────────────────────────────────────────────────────
 function locateMe() {
