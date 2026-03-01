@@ -41,7 +41,7 @@ body.dark {
   --input-bg:    #0a0c10;
 }
 
-/* ── TOP BAR — single compact strip ─────────────── */
+/* ── TOP BAR ─────────────────────────────────────── */
 .topbar {
   position: fixed;
   top: env(safe-area-inset-top, 0px);
@@ -49,14 +49,13 @@ body.dark {
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 0;
   background: var(--pill-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--pill-border);
   box-shadow: 0 2px 16px var(--shadow);
-  padding: 0 12px;
-  height: 52px;
+  padding: 0 16px;
+  height: clamp(52px, 7vh, 68px);  /* taller on laptop, compact on mobile */
 }
 
 /* Brand */
@@ -64,11 +63,11 @@ body.dark {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 16px;
   flex-shrink: 0;
 }
 .brand-name {
-  font-size: 13px;
+  font-size: clamp(13px, 1.4vw, 18px);
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.2px;
@@ -76,7 +75,7 @@ body.dark {
 }
 .brand-sub {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
+  font-size: clamp(8px, 0.7vw, 10px);
   color: var(--muted);
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -85,9 +84,9 @@ body.dark {
 /* Divider */
 .top-div {
   width: 1px;
-  height: 28px;
+  height: 32px;
   background: var(--pill-border);
-  margin: 0 10px;
+  margin: 0 14px;
   flex-shrink: 0;
 }
 
@@ -95,18 +94,19 @@ body.dark {
 .stats-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: clamp(12px, 2vw, 28px);
   flex: 1;
   overflow: hidden;
 }
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   white-space: nowrap;
 }
 .stat-dot {
-  width: 7px; height: 7px;
+  width: clamp(7px, 0.6vw, 10px);
+  height: clamp(7px, 0.6vw, 10px);
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -123,22 +123,21 @@ body.dark {
 }
 .stat-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: clamp(13px, 1.2vw, 17px);
   font-weight: 500;
   color: var(--text);
 }
 .stat-lbl {
-  font-size: 10px;
+  font-size: clamp(10px, 0.85vw, 13px);
   color: var(--muted);
 }
 
-/* ── RIGHT-SIDE CONTROL COLUMN ───────────────────── */
-/* All controls stacked vertically on the right edge */
+/* ── RIGHT CONTROL COLUMN — anchored bottom-right ── */
+/* Uses bottom anchor so it never matters how tall the topbar is */
 .ctrl-col {
   position: fixed;
-  right: 12px;
-  /* sit just below the topbar, account for safe area */
-  top: calc(52px + env(safe-area-inset-top, 0px) + 12px);
+  right: 14px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -147,7 +146,8 @@ body.dark {
 }
 
 .ctrl-btn {
-  width: 36px; height: 36px;
+  width: clamp(36px, 3vw, 42px);
+  height: clamp(36px, 3vw, 42px);
   display: flex; align-items: center; justify-content: center;
   background: var(--pill-bg);
   backdrop-filter: blur(12px);
@@ -156,25 +156,26 @@ body.dark {
   border-radius: 8px;
   box-shadow: 0 2px 12px var(--shadow);
   cursor: pointer;
-  font-size: 15px;
+  font-size: clamp(14px, 1.2vw, 18px);
   transition: all 0.15s;
   color: var(--text);
   user-select: none;
   -webkit-user-select: none;
 }
+.ctrl-btn:hover  { border-color: var(--text); }
 .ctrl-btn:active { transform: scale(.92); }
 
-/* Zoom buttons — native Leaflet, styled to match */
+/* Zoom buttons — Leaflet native, styled to match ctrl-btn */
 .leaflet-control-zoom {
   border: none !important;
   margin: 0 !important;
   box-shadow: none !important;
 }
 .leaflet-control-zoom a {
-  width: 36px !important;
-  height: 36px !important;
-  line-height: 36px !important;
-  font-size: 18px !important;
+  width: clamp(36px, 3vw, 42px) !important;
+  height: clamp(36px, 3vw, 42px) !important;
+  line-height: clamp(36px, 3vw, 42px) !important;
+  font-size: clamp(16px, 1.4vw, 20px) !important;
   background: var(--pill-bg) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -183,35 +184,31 @@ body.dark {
   border-radius: 8px !important;
   box-shadow: 0 2px 12px var(--shadow) !important;
   display: flex !important;
-  align-items: center;
-  justify-content: center;
+  align-items: center !important;
+  justify-content: center !important;
   margin-bottom: 8px !important;
 }
 .leaflet-control-zoom a:last-child { margin-bottom: 0 !important; }
-.leaflet-control-zoom a:hover { background: var(--pill-border) !important; }
-/* Position zoom control below our custom ctrl-col */
-.leaflet-bottom.leaflet-right {
-  bottom: auto !important;
-  /* 52px topbar + safe area + 12px gap + 3 buttons×44px + gaps */
-  top: calc(52px + env(safe-area-inset-top, 0px) + 12px + 132px) !important;
-  right: 12px !important;
-}
+.leaflet-control-zoom a:hover { border-color: var(--text) !important; }
+/* Hide Leaflet's default corner container — we move zoom into ctrl-col via JS */
+.leaflet-top.leaflet-right,
+.leaflet-bottom.leaflet-right { display: none !important; }
 
 /* ── ZOOM BADGE ──────────────────────────────────── */
 .zoom-badge {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  padding: 5px 12px;
+  padding: 5px 14px;
   background: var(--pill-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--pill-border);
   border-radius: 100px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: clamp(9px, 0.75vw, 11px);
   color: var(--muted);
   letter-spacing: 1px;
   pointer-events: none;
@@ -222,14 +219,14 @@ body.dark {
 /* ── SYNC BADGE ──────────────────────────────────── */
 .sync-badge {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-  left: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  left: 14px;
   z-index: 1000;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: clamp(9px, 0.7vw, 11px);
   color: var(--muted);
   pointer-events: none;
-  max-width: 160px;
+  max-width: 200px;
   line-height: 1.4;
 }
 
@@ -418,25 +415,22 @@ const map = L.map('map', {
   maxZoom: 19,
 }).setView([-2.5, 118], 5);
 
-// Zoom control — appended inside our ctrl-col div so it flows with other buttons
+// Zoom control — move into ctrl-col so it flows with other buttons
+// ctrl-col is bottom-anchored, so zoom (appended last) appears at the BOTTOM
+// Order in column top→bottom: crosshair, theme, settings, zoom+, zoom-
 const zoomCtrl = L.control.zoom({ position: 'topright' });
 zoomCtrl.addTo(map);
-// Move zoom DOM into our ctrl-col after Leaflet adds it
-document.addEventListener('DOMContentLoaded', () => {});
 setTimeout(() => {
   const col  = document.querySelector('.ctrl-col');
   const zdom = document.querySelector('.leaflet-control-zoom');
   if (col && zdom) {
-    // Detach from Leaflet container and append to our column
-    zdom.style.display = 'flex';
+    zdom.style.display       = 'flex';
     zdom.style.flexDirection = 'column';
-    zdom.style.gap = '8px';
+    zdom.style.gap           = '8px';
+    zdom.style.margin        = '0';
     col.appendChild(zdom);
-    // Hide the now-empty Leaflet top-right corner
-    const lr = document.querySelector('.leaflet-top.leaflet-right');
-    if (lr) lr.style.display = 'none';
   }
-}, 100);
+}, 50);
 
 let tileLayer = L.tileLayer(isDark ? TILES.dark : TILES.light, {
   attribution: '© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
