@@ -484,25 +484,50 @@ function makeTab(app_id, label, count) {
     tab.appendChild(countSpan);
   }
 
-  // Single click: switch filter
+  // Single click / tap: switch filter
   tab.addEventListener('click', (e) => {
-    if (e.target.tagName === 'INPUT') return; // ignore clicks on rename input
+    if (e.target.tagName === 'INPUT') return;
     switchApp(app_id);
   });
 
-  // Double click: inline rename (not for "All" tab)
+  // Long press to rename (not for "All" tab)
+  // Works on both mobile (touch) and desktop (mouse)
   if (app_id !== 'all') {
-    tab.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      startRename(tab, nameSpan, app_id, label);
-    });
-    tab.title = 'Click to filter · Double-click to rename';
+    let pressTimer = null;
+
+    const startPress = (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        if (e.cancelable) e.preventDefault();
+        startRename(tab, nameSpan, app_id, nameSpan.textContent);
+      }, 600);
+    };
+
+    const cancelPress = () => {
+      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    };
+
+    // Touch (mobile)
+    tab.addEventListener('touchstart',  startPress, { passive: true });
+    tab.addEventListener('touchend',    cancelPress);
+    tab.addEventListener('touchmove',   cancelPress);
+
+    // Mouse (desktop)
+    tab.addEventListener('mousedown',  startPress);
+    tab.addEventListener('mouseup',    cancelPress);
+    tab.addEventListener('mouseleave', cancelPress);
+
+    tab.title = 'Tap to filter · Hold to rename';
   }
 
   return tab;
 }
 
 function startRename(tab, nameSpan, app_id, currentName) {
+  // Pause auto-refresh so it doesn't wipe the input mid-edit
+  clearInterval(window._refreshTimer);
+
   const input = document.createElement('input');
   input.className = 'app-tab-input';
   input.value     = currentName;
@@ -516,6 +541,7 @@ function startRename(tab, nameSpan, app_id, currentName) {
     // Optimistic UI update
     nameSpan.textContent = newName;
     tab.replaceChild(nameSpan, input);
+    resumeRefresh(); // resume auto-refresh after editing done
 
     if (newName !== currentName && WORKER_URL) {
       try {
@@ -524,7 +550,6 @@ function startRename(tab, nameSpan, app_id, currentName) {
           headers: { 'Content-Type':'application/json', 'x-api-key': DASH_KEY },
           body: JSON.stringify({ app_name: newName }),
         });
-        // Update local cache
         const app = knownApps.find(a => a.app_id === app_id);
         if (app) app.app_name = newName;
         setSyncBadge('Renamed → ' + newName);
@@ -539,6 +564,11 @@ function startRename(tab, nameSpan, app_id, currentName) {
     if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { input.value = currentName; input.blur(); }
   });
+}
+
+function resumeRefresh() {
+  clearInterval(window._refreshTimer);
+  window._refreshTimer = setInterval(fetchAll, 60000);
 }
 
 function switchApp(app_id) {
@@ -666,7 +696,7 @@ function timeAgo(ts){
 
 // ── BOOT ───────────────────────────────────────────────────────────────────────
 fetchAll();
-setInterval(fetchAll, 60000);
+window._refreshTimer = setInterval(fetchAll, 60000);
 </script>
 </body>
 </html>
