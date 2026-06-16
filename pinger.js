@@ -1,29 +1,21 @@
 /**
- * POS Tracker — Embed Module v5.0
+ * POS Tracker — Embed Module v6.0
  * ─────────────────────────────────────────────────────────
- * Drop this into your POS app. Zero UI, zero config needed
- * beyond workerUrl and deviceKey. Everything else is automatic.
+ * Drop into your POS PWA. Zero UI. Auto-registers on first launch.
  *
- * FIRST LAUNCH:
- *   No ID in localStorage → POST /register → server assigns
- *   hex ID (e.g. "00000A") → saved to localStorage forever.
- *
- * EVERY LAUNCH AFTER:
- *   Has ID → POST /ping directly. No registration call.
+ * NEW: appId field identifies which product this device belongs to.
+ * NEW: GPS fallback — if user denies permission, Cloudflare IP
+ *      geolocation is used automatically server-side. No extra code needed.
  *
  * USAGE:
  *   const tracker = new POSTracker({
  *     workerUrl: 'https://pos-coverage.YOUR.workers.dev',
  *     deviceKey:  'your-device-secret-key',
- *     storeName:  'Toko Maju Jaya',   // optional but recommended
+ *     appId:      'PWA1',            // ← identifies your product
+ *     storeName:  'Toko Maju Jaya',  // optional
  *   });
- *   tracker.start();   // call on app open / user login
- *   tracker.stop();    // call on app close / user logout
- *
- * CALLBACKS (optional):
- *   onRegister(device_id)  — fires once when ID is first assigned
- *   onPing(payload)        — fires on every successful ping
- *   onError(error)         — fires on any failure
+ *   tracker.start();   // on app open / user login
+ *   tracker.stop();    // on app close / user logout
  */
 
 class POSTracker {
@@ -33,6 +25,7 @@ class POSTracker {
 
     this._base      = config.workerUrl.replace(/\/$/, '');
     this._key       = config.deviceKey;
+    this.appId      = config.appId      || 'PWA1';
     this.storeName  = config.storeName  || '';
     this.interval   = config.interval   || 60 * 60 * 1000; // 1 hour
 
@@ -43,9 +36,7 @@ class POSTracker {
     this._timer      = null;
     this._visHandler = null;
     this._running    = false;
-
-    // localStorage keys
-    this._ID_KEY = 'pos_device_id';
+    this._ID_KEY     = 'pos_device_id_' + this.appId; // scoped per app
   }
 
   // ── PUBLIC ──────────────────────────────────────────────
@@ -54,22 +45,15 @@ class POSTracker {
     if (this._running) return;
     this._running = true;
 
-    // Ensure registered before first ping
     await this._ensureRegistered();
-
-    // First ping immediately
     await this._ping();
 
-    // Recurring ping every interval
     this._timer = setInterval(() => this._ping(), this.interval);
-
-    // Ping when user returns to app after switching away
     this._visHandler = () => {
       if (document.visibilityState === 'visible') this._ping();
     };
     document.addEventListener('visibilitychange', this._visHandler);
-
-    console.log(`[POSTracker] Running — ID: ${this.getDeviceId()}`);
+    console.log(`[POSTracker:${this.appId}] Running — ID: ${this.getDeviceId()}`);
   }
 
   stop() {
@@ -79,28 +63,29 @@ class POSTracker {
       document.removeEventListener('visibilitychange', this._visHandler);
       this._visHandler = null;
     }
-    console.log('[POSTracker] Stopped.');
+    console.log(`[POSTracker:${this.appId}] Stopped.`);
   }
 
-  forcePing()    { return this._ping(); }
-  getDeviceId()  { return localStorage.getItem(this._ID_KEY) || null; }
+  forcePing()   { return this._ping(); }
+  getDeviceId() { return localStorage.getItem(this._ID_KEY) || null; }
 
   // ── PRIVATE ─────────────────────────────────────────────
 
-  // Called once on start(). If no ID exists, registers with server.
   async _ensureRegistered() {
-    if (this.getDeviceId()) return; // already registered
+    if (this.getDeviceId()) return;
 
-    console.log('[POSTracker] First launch — registering with server...');
-    const payload = { store_name: this.storeName };
+    console.log(`[POSTracker:${this.appId}] First launch — registering...`);
+    const payload = { app_id: this.appId, store_name: this.storeName };
 
-    // Attach GPS if available
+    // Attempt GPS — if denied/unavailable, server uses IP geolocation automatically
     try {
       const pos = await this._gps();
       payload.latitude  = pos.coords.latitude;
       payload.longitude = pos.coords.longitude;
       payload.accuracy  = pos.coords.accuracy;
-    } catch (_) {}
+    } catch (_) {
+      console.log(`[POSTracker:${this.appId}] GPS unavailable — server will use IP location`);
+    }
 
     try {
       const res = await fetch(`${this._base}/register`, {
@@ -108,31 +93,24 @@ class POSTracker {
         headers: { 'Content-Type': 'application/json', 'x-api-key': this._key },
         body:    JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`Register HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
-      // Server assigned hex ID — save permanently
       localStorage.setItem(this._ID_KEY, data.device_id);
-      console.log(`[POSTracker] Registered — ID: ${data.device_id}`);
+      console.log(`[POSTracker:${this.appId}] Registered — ID: ${data.device_id}`);
       if (this.onRegister) this.onRegister(data.device_id);
-
     } catch (err) {
-      // Registration failed — will retry next start()
       if (this.onError) this.onError(err);
-      console.error('[POSTracker] Registration failed:', err.message);
+      console.error(`[POSTracker:${this.appId}] Registration failed:`, err.message);
     }
   }
 
   async _ping() {
     const device_id = this.getDeviceId();
-    if (!device_id) {
-      console.warn('[POSTracker] No device ID yet — skipping ping');
-      return;
-    }
+    if (!device_id) { console.warn(`[POSTracker:${this.appId}] No ID yet — skipping ping`); return; }
 
-    const payload = { device_id, store_name: this.storeName };
+    const payload = { device_id, app_id: this.appId, store_name: this.storeName };
 
-    // Attach GPS silently — no error if unavailable
+    // GPS attempt — server falls back to IP if not provided
     try {
       const pos = await this._gps();
       payload.latitude  = pos.coords.latitude;
@@ -149,10 +127,10 @@ class POSTracker {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (this.onPing) this.onPing({ ...payload, ...data });
-      console.log(`[POSTracker] ✓ ping — ${device_id}`);
+      console.log(`[POSTracker:${this.appId}] ✓ ping — ${device_id}`);
     } catch (err) {
       if (this.onError) this.onError(err);
-      console.warn(`[POSTracker] ✗ ping failed — ${err.message}`);
+      console.warn(`[POSTracker:${this.appId}] ✗ ping — ${err.message}`);
     }
   }
 
@@ -166,6 +144,5 @@ class POSTracker {
   }
 }
 
-// Export for all environments
 if (typeof module !== 'undefined' && module.exports) module.exports = POSTracker;
 if (typeof window  !== 'undefined') window.POSTracker = POSTracker;
