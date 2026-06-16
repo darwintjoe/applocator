@@ -15,265 +15,232 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { height:100%; width:100%; overflow:hidden; font-family:'Inter',sans-serif; }
-
-/* ── FULL SCREEN MAP ─────────────────────────────── */
 #map { position:fixed; inset:0; z-index:0; }
 
-/* ── THEME VARIABLES ─────────────────────────────── */
+/* ── THEME ───────────────────────────────────────── */
 body.light {
-  --bg:          #f0f0f0;
-  --pill-bg:     rgba(255,255,255,0.90);
-  --pill-border: rgba(0,0,0,0.10);
-  --shadow:      rgba(0,0,0,0.14);
-  --text:        #111827;
-  --muted:       #6b7280;
-  --modal-bg:    #ffffff;
-  --input-bg:    #f9fafb;
+  --pill-bg:    rgba(255,255,255,0.92);
+  --pill-border:rgba(0,0,0,0.10);
+  --shadow:     rgba(0,0,0,0.12);
+  --text:       #111827;
+  --muted:      #6b7280;
+  --modal-bg:   #ffffff;
+  --input-bg:   #f9fafb;
+  --app-active: #111827;
+  --app-active-text: #ffffff;
 }
 body.dark {
-  --bg:          #0a0c10;
-  --pill-bg:     rgba(15,17,23,0.90);
-  --pill-border: rgba(255,255,255,0.10);
-  --shadow:      rgba(0,0,0,0.55);
-  --text:        #f3f4f6;
-  --muted:       #6b7280;
-  --modal-bg:    #111318;
-  --input-bg:    #0a0c10;
+  --pill-bg:    rgba(13,16,23,0.92);
+  --pill-border:rgba(255,255,255,0.10);
+  --shadow:     rgba(0,0,0,0.50);
+  --text:       #f3f4f6;
+  --muted:      #6b7280;
+  --modal-bg:   #111318;
+  --input-bg:   #0a0c10;
+  --app-active: #f3f4f6;
+  --app-active-text: #111318;
 }
 
 /* ── TOP BAR ─────────────────────────────────────── */
 .topbar {
   position: fixed;
   top: env(safe-area-inset-top, 0px);
-  left: 0; right: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
+  left: 0; right: 0; z-index: 1000;
   background: var(--pill-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--pill-border);
   box-shadow: 0 2px 16px var(--shadow);
-  padding: 0 16px;
-  height: clamp(52px, 7vh, 68px);  /* taller on laptop, compact on mobile */
 }
 
-/* Brand */
-.brand {
+/* Row 1: brand + stats */
+.topbar-main {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin-right: 16px;
-  flex-shrink: 0;
+  align-items: center;
+  padding: 0 16px;
+  height: clamp(50px, 6.5vh, 64px);
+  gap: 0;
+}
+.brand {
+  display: flex; flex-direction: column; justify-content: center;
+  margin-right: 14px; flex-shrink: 0;
 }
 .brand-name {
-  font-size: clamp(13px, 1.4vw, 18px);
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.2px;
-  line-height: 1.2;
+  font-size: clamp(13px, 1.3vw, 17px);
+  font-weight: 600; color: var(--text); letter-spacing: -0.2px; line-height: 1.2;
 }
 .brand-sub {
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(8px, 0.7vw, 10px);
-  color: var(--muted);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-size: clamp(8px, 0.65vw, 10px);
+  color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase;
 }
-
-/* Divider */
 .top-div {
-  width: 1px;
-  height: 32px;
-  background: var(--pill-border);
-  margin: 0 14px;
-  flex-shrink: 0;
+  width: 1px; height: 28px;
+  background: var(--pill-border); margin: 0 14px; flex-shrink: 0;
 }
-
-/* Stats inline row */
 .stats-row {
-  display: flex;
-  align-items: center;
-  gap: clamp(12px, 2vw, 28px);
-  flex: 1;
-  overflow: hidden;
+  display: flex; align-items: center;
+  gap: clamp(12px, 2vw, 28px); flex: 1; overflow: hidden;
 }
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
+.stat-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .stat-dot {
-  width: clamp(7px, 0.6vw, 10px);
-  height: clamp(7px, 0.6vw, 10px);
-  border-radius: 50%;
-  flex-shrink: 0;
+  width: clamp(7px, 0.55vw, 9px); height: clamp(7px, 0.55vw, 9px);
+  border-radius: 50%; flex-shrink: 0;
 }
-.stat-dot.green {
-  background: #22c55e;
-  box-shadow: 0 0 5px #22c55e;
-  animation: pdot 2s ease-in-out infinite;
-}
-.stat-dot.grey { background: #6b7280; }
-.stat-dot.blue { background: #3b82f6; }
+.stat-dot.green { background:#22c55e; animation: pdot 2s ease-in-out infinite; }
+.stat-dot.grey  { background:#6b7280; }
+.stat-dot.blue  { background:#3b82f6; }
 @keyframes pdot {
-  0%,100% { box-shadow: 0 0 3px #22c55e; }
-  50%      { box-shadow: 0 0 8px #22c55e; }
+  0%,100%{box-shadow:0 0 3px #22c55e} 50%{box-shadow:0 0 8px #22c55e}
 }
 .stat-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(13px, 1.2vw, 17px);
-  font-weight: 500;
-  color: var(--text);
+  font-size: clamp(13px, 1.15vw, 16px); font-weight: 500; color: var(--text);
 }
-.stat-lbl {
-  font-size: clamp(10px, 0.85vw, 13px);
+.stat-lbl { font-size: clamp(10px, 0.8vw, 12px); color: var(--muted); }
+
+/* Row 2: app selector tabs — only visible when apps loaded */
+.app-bar {
+  display: none; /* shown via JS once apps load */
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.app-bar::-webkit-scrollbar { display: none; }
+.app-bar.visible { display: flex; }
+
+.app-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--pill-border);
+  background: transparent;
   color: var(--muted);
+  font-size: clamp(11px, 0.85vw, 13px);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.app-tab:hover { color: var(--text); border-color: var(--text); }
+.app-tab.active {
+  background: var(--app-active);
+  color: var(--app-active-text);
+  border-color: transparent;
+}
+.app-tab-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; opacity: .7;
 }
 
-/* ── RIGHT CONTROL COLUMN — anchored bottom-right ── */
-/* Uses bottom anchor so it never matters how tall the topbar is */
+/* Inline rename input — replaces tab text on double-click */
+.app-tab-input {
+  background: transparent;
+  border: none; outline: none;
+  font-size: clamp(11px, 0.85vw, 13px);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: inherit;
+  width: 90px;
+  padding: 0;
+}
+
+/* ── RIGHT CONTROL COLUMN ────────────────────────── */
 .ctrl-col {
   position: fixed;
   right: 14px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
 }
-
 .ctrl-btn {
-  width: clamp(36px, 3vw, 42px);
-  height: clamp(36px, 3vw, 42px);
+  width: clamp(36px, 3vw, 42px); height: clamp(36px, 3vw, 42px);
   display: flex; align-items: center; justify-content: center;
   background: var(--pill-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--pill-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px var(--shadow);
-  cursor: pointer;
-  font-size: clamp(14px, 1.2vw, 18px);
-  transition: all 0.15s;
-  color: var(--text);
-  user-select: none;
-  -webkit-user-select: none;
+  border-radius: 8px; box-shadow: 0 2px 12px var(--shadow);
+  cursor: pointer; font-size: clamp(14px, 1.2vw, 18px);
+  transition: all .15s; color: var(--text);
+  user-select: none; -webkit-user-select: none;
 }
 .ctrl-btn:hover  { border-color: var(--text); }
 .ctrl-btn:active { transform: scale(.92); }
 
-/* Zoom buttons — Leaflet native, styled to match ctrl-btn */
-.leaflet-control-zoom {
-  border: none !important;
-  margin: 0 !important;
-  box-shadow: none !important;
-}
+/* Leaflet zoom styled to match ctrl-btn */
+.leaflet-control-zoom { border:none !important; margin:0 !important; box-shadow:none !important; }
 .leaflet-control-zoom a {
-  width: clamp(36px, 3vw, 42px) !important;
-  height: clamp(36px, 3vw, 42px) !important;
-  line-height: clamp(36px, 3vw, 42px) !important;
-  font-size: clamp(16px, 1.4vw, 20px) !important;
-  background: var(--pill-bg) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: var(--text) !important;
-  border: 1px solid var(--pill-border) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 2px 12px var(--shadow) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: clamp(36px, 3vw, 42px) !important; height: clamp(36px, 3vw, 42px) !important;
+  line-height: clamp(36px, 3vw, 42px) !important; font-size: clamp(16px,1.4vw,20px) !important;
+  background: var(--pill-bg) !important; backdrop-filter: blur(12px);
+  color: var(--text) !important; border: 1px solid var(--pill-border) !important;
+  border-radius: 8px !important; box-shadow: 0 2px 12px var(--shadow) !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
   margin-bottom: 8px !important;
 }
-.leaflet-control-zoom a:last-child { margin-bottom: 0 !important; }
+.leaflet-control-zoom a:last-child { margin-bottom:0 !important; }
 .leaflet-control-zoom a:hover { border-color: var(--text) !important; }
-/* Hide Leaflet's default corner container — we move zoom into ctrl-col via JS */
 .leaflet-top.leaflet-right,
-.leaflet-bottom.leaflet-right { display: none !important; }
+.leaflet-bottom.leaflet-right { display:none !important; }
 
-/* ── ZOOM BADGE ──────────────────────────────────── */
+/* ── BOTTOM BADGES ───────────────────────────────── */
 .zoom-badge {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom,0px) + 14px);
+  left: 50%; transform: translateX(-50%);
   z-index: 1000;
   padding: 5px 14px;
-  background: var(--pill-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--pill-border);
-  border-radius: 100px;
+  background: var(--pill-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--pill-border); border-radius: 100px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(9px, 0.75vw, 11px);
-  color: var(--muted);
-  letter-spacing: 1px;
-  pointer-events: none;
-  box-shadow: 0 2px 12px var(--shadow);
-  white-space: nowrap;
+  font-size: clamp(9px, 0.7vw, 11px); color: var(--muted); letter-spacing: 1px;
+  pointer-events: none; box-shadow: 0 2px 12px var(--shadow); white-space: nowrap;
 }
-
-/* ── SYNC BADGE ──────────────────────────────────── */
 .sync-badge {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  left: 14px;
+  bottom: calc(env(safe-area-inset-bottom,0px) + 14px); left: 14px;
   z-index: 1000;
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(9px, 0.7vw, 11px);
-  color: var(--muted);
-  pointer-events: none;
-  max-width: 200px;
-  line-height: 1.4;
+  font-size: clamp(9px, 0.7vw, 11px); color: var(--muted);
+  pointer-events: none; max-width: 200px; line-height: 1.4;
 }
 
-/* ── CONFIG MODAL ────────────────────────────────── */
+/* ── MODAL ───────────────────────────────────────── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(6px);
-  z-index: 9999;
-  align-items: flex-end; /* slide up from bottom on mobile */
-  justify-content: center;
-  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
+  z-index: 9999; align-items: flex-end; justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .modal-overlay.open { display: flex; }
 .modal {
-  background: var(--modal-bg);
-  border: 1px solid var(--pill-border);
-  border-radius: 18px 18px 0 0;
-  padding: 24px 20px 28px;
-  width: 100%; max-width: 480px;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.3);
+  background: var(--modal-bg); border: 1px solid var(--pill-border);
+  border-radius: 18px 18px 0 0; padding: 24px 20px 28px;
+  width: 100%; max-width: 480px; box-shadow: 0 -8px 40px rgba(0,0,0,.3);
 }
 .modal-handle {
-  width: 36px; height: 4px;
-  background: var(--pill-border);
-  border-radius: 2px;
-  margin: 0 auto 20px;
+  width: 36px; height: 4px; background: var(--pill-border);
+  border-radius: 2px; margin: 0 auto 20px;
 }
 .modal h2 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
 .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
 .fg { margin-bottom: 12px; }
 .fg label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; font-weight:500; }
 .fg input {
-  width:100%; padding:10px 12px;
-  background: var(--input-bg);
-  border: 1px solid var(--pill-border);
-  border-radius: 8px;
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; outline: none;
-  transition: border-color .15s;
+  width:100%; padding:10px 12px; background: var(--input-bg);
+  border: 1px solid var(--pill-border); border-radius: 8px;
+  color: var(--text); font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; outline: none; transition: border-color .15s;
 }
 .fg input:focus { border-color: #3b82f6; }
 .modal-actions { display:flex; gap:8px; margin-top:20px; }
 .btn-primary {
-  flex:1; padding:12px; background:#3b82f6; color:white; border:none;
-  border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;
+  flex:1; padding:12px; background:#3b82f6; color:white;
+  border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;
 }
 .btn-sec {
   padding:12px 18px; background:transparent; color:var(--muted);
@@ -282,11 +249,8 @@ body.dark {
 
 /* ── POPUP ───────────────────────────────────────── */
 .leaflet-popup-content-wrapper {
-  background: var(--modal-bg) !important;
-  border: 1px solid var(--pill-border) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.25) !important;
-  padding: 0 !important;
+  background: var(--modal-bg) !important; border: 1px solid var(--pill-border) !important;
+  border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,.25) !important; padding:0 !important;
 }
 .leaflet-popup-tip-container { display:none; }
 .leaflet-popup-content { margin:0 !important; }
@@ -301,44 +265,42 @@ body.dark {
 .pop-status.online  { background:#22c55e18; color:#22c55e; }
 .pop-status.offline { background:#6b728018; color:#6b7280; }
 
-/* Hide leaflet attribution on small screens */
-@media (max-width: 480px) {
-  .leaflet-control-attribution { display: none; }
-}
+@media (max-width:480px) { .leaflet-control-attribution { display:none; } }
 </style>
 </head>
 <body class="dark">
 
-<!-- FULL SCREEN MAP -->
 <div id="map"></div>
 
-<!-- TOP BAR — compact single strip -->
+<!-- TOP BAR -->
 <div class="topbar">
-  <div class="brand">
-    <div class="brand-name">POS Network</div>
-    <div class="brand-sub">Coverage Map</div>
+  <!-- Row 1: brand + stats -->
+  <div class="topbar-main">
+    <div class="brand">
+      <div class="brand-name">POS Network</div>
+      <div class="brand-sub">Coverage Map</div>
+    </div>
+    <div class="top-div"></div>
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-dot green"></div>
+        <div class="stat-val" id="s-online">—</div>
+        <div class="stat-lbl">online</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-dot grey"></div>
+        <div class="stat-val" id="s-offline">—</div>
+        <div class="stat-lbl">offline</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-dot blue"></div>
+        <div class="stat-val" id="s-new">—</div>
+        <div class="stat-lbl">new</div>
+      </div>
+    </div>
   </div>
-
-  <div class="top-div"></div>
-
-  <!-- Inline stats: green dot · 3.2K online  grey dot · 81K offline  blue dot · 3.4K new -->
-  <div class="stats-row">
-    <div class="stat-item">
-      <div class="stat-dot green"></div>
-      <div class="stat-val" id="s-online">—</div>
-      <div class="stat-lbl">online</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-dot grey"></div>
-      <div class="stat-val" id="s-offline">—</div>
-      <div class="stat-lbl">offline</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-dot blue"></div>
-      <div class="stat-val" id="s-new">—</div>
-      <div class="stat-lbl">new</div>
-    </div>
-  </div>
+  <!-- Row 2: app selector (dynamically populated) -->
+  <div class="app-bar" id="app-bar"></div>
 </div>
 
 <!-- RIGHT CONTROL COLUMN -->
@@ -346,25 +308,22 @@ body.dark {
   <button class="ctrl-btn" onclick="locateMe()" title="My location">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/>
-      <line x1="12" y1="2" x2="12" y2="6"/>
-      <line x1="12" y1="18" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="6" y2="12"/>
-      <line x1="18" y1="12" x2="22" y2="12"/>
+      <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
     </svg>
   </button>
-  <!-- Layer toggle: dots ↔ heatmap -->
   <button class="ctrl-btn" id="layer-btn" onclick="toggleLayer()" title="Switch dots / heatmap">
-    <svg id="layer-icon-dot" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="5"  cy="12" r="2" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="6"  r="2" fill="currentColor" stroke="none"/>
-      <circle cx="19" cy="15" r="2" fill="currentColor" stroke="none"/>
-      <circle cx="9"  cy="18" r="2" fill="currentColor" stroke="none"/>
-      <circle cx="16" cy="10" r="2" fill="currentColor" stroke="none"/>
+    <svg id="layer-icon-dot" width="17" height="17" viewBox="0 0 24 24">
+      <circle cx="5"  cy="12" r="2.5" fill="currentColor"/>
+      <circle cx="12" cy="6"  r="2.5" fill="currentColor"/>
+      <circle cx="19" cy="15" r="2.5" fill="currentColor"/>
+      <circle cx="9"  cy="18" r="2.5" fill="currentColor"/>
+      <circle cx="16" cy="10" r="2.5" fill="currentColor"/>
     </svg>
-    <svg id="layer-icon-heat" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-      <ellipse cx="12" cy="12" rx="4" ry="4" fill="currentColor" opacity=".9" stroke="none"/>
-      <ellipse cx="12" cy="12" rx="8" ry="7" fill="currentColor" opacity=".35" stroke="none"/>
-      <ellipse cx="12" cy="12" rx="12" ry="10" fill="currentColor" opacity=".12" stroke="none"/>
+    <svg id="layer-icon-heat" width="17" height="17" viewBox="0 0 24 24" style="display:none">
+      <ellipse cx="12" cy="12" rx="4"  ry="4"  fill="currentColor" opacity=".9"/>
+      <ellipse cx="12" cy="12" rx="8"  ry="7"  fill="currentColor" opacity=".35"/>
+      <ellipse cx="12" cy="12" rx="12" ry="10" fill="currentColor" opacity=".12"/>
     </svg>
   </button>
   <button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()" title="Light / dark">☀️</button>
@@ -374,21 +333,17 @@ body.dark {
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   </button>
-  <!-- Zoom +/- appended here by Leaflet via JS -->
 </div>
 
-<!-- ZOOM BADGE -->
-<div class="zoom-badge" id="zoom-badge">Zoom in to see store dots</div>
-
-<!-- SYNC BADGE -->
+<div class="zoom-badge" id="zoom-badge">Dot view — tap a dot for info</div>
 <div class="sync-badge" id="sync-badge">—</div>
 
-<!-- CONFIG MODAL — slides up from bottom -->
+<!-- CONFIG MODAL -->
 <div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
   <div class="modal" id="modal-box">
     <div class="modal-handle"></div>
     <h2>Cloudflare Worker Config</h2>
-    <div class="modal-sub">Direct connection — no server needed</div>
+    <div class="modal-sub">Direct connection — no middleware needed</div>
     <div class="fg">
       <label>Worker URL</label>
       <input type="url" id="cfg-url" placeholder="https://pos-coverage.your-name.workers.dev" autocomplete="off" autocorrect="off" autocapitalize="none">
@@ -407,12 +362,10 @@ body.dark {
 <script>
 // ── THEME ──────────────────────────────────────────────────────────────────────
 let isDark = localStorage.getItem('map_theme') !== 'light';
-
 const TILES = {
   dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
   light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
 };
-
 function applyTheme() {
   document.body.className = isDark ? 'dark' : 'light';
   document.getElementById('theme-btn').textContent = isDark ? '☀️' : '🌙';
@@ -421,35 +374,22 @@ function applyTheme() {
 }
 function toggleTheme() { isDark = !isDark; applyTheme(); }
 
-// ── MAP INIT ───────────────────────────────────────────────────────────────────
-const map = L.map('map', {
-  zoomControl: false,
-  minZoom: 2,
-  maxZoom: 19,
-}).setView([-2.5, 118], 5);
-
-// Zoom control — move into ctrl-col so it flows with other buttons
-// ctrl-col is bottom-anchored, so zoom (appended last) appears at the BOTTOM
-// Order in column top→bottom: crosshair, theme, settings, zoom+, zoom-
-const zoomCtrl = L.control.zoom({ position: 'topright' });
-zoomCtrl.addTo(map);
+// ── MAP ────────────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl:false, minZoom:2, maxZoom:19 })
+              .setView([-2.5, 118], 5);
+L.control.zoom({ position:'topright' }).addTo(map);
 setTimeout(() => {
   const col  = document.querySelector('.ctrl-col');
   const zdom = document.querySelector('.leaflet-control-zoom');
   if (col && zdom) {
-    zdom.style.display       = 'flex';
-    zdom.style.flexDirection = 'column';
-    zdom.style.gap           = '8px';
-    zdom.style.margin        = '0';
+    zdom.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin:0;';
     col.appendChild(zdom);
   }
 }, 50);
-
 let tileLayer = L.tileLayer(isDark ? TILES.dark : TILES.light, {
-  attribution: '© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
-  subdomains: 'abcd', maxZoom: 19
+  attribution:'© <a href="https://openstreetmap.org">OSM</a> © <a href="https://carto.com">CARTO</a>',
+  subdomains:'abcd', maxZoom:19
 }).addTo(map);
-
 applyTheme();
 
 // ── CONFIG ─────────────────────────────────────────────────────────────────────
@@ -457,35 +397,13 @@ let WORKER_URL = localStorage.getItem('pos_worker_url') || '';
 let DASH_KEY   = localStorage.getItem('pos_dash_key')   || '';
 
 // ── STATE ──────────────────────────────────────────────────────────────────────
-const OFFLINE_MS = 75 * 60 * 1000;
-let heatLayer    = null;
-let dotGroup     = null;
-let allPoints    = [];
-let showDotView  = localStorage.getItem('map_layer') !== 'heat'; // default: dots
-
-// ── LAYER TOGGLE ───────────────────────────────────────────────────────────────
-function toggleLayer() {
-  showDotView = !showDotView;
-  localStorage.setItem('map_layer', showDotView ? 'dot' : 'heat');
-  applyLayer();
-}
-
-function applyLayer() {
-  const btn = document.getElementById('layer-btn');
-  if (showDotView) {
-    removeHeat(); showDots(allPoints);
-    document.getElementById('layer-icon-dot').style.display  = 'block';
-    document.getElementById('layer-icon-heat').style.display = 'none';
-    btn.title = 'Switch to heatmap';
-    set('zoom-badge', 'Dot view — tap a dot for info');
-  } else {
-    removeDots(); showHeatmap(allPoints);
-    document.getElementById('layer-icon-dot').style.display  = 'none';
-    document.getElementById('layer-icon-heat').style.display = 'block';
-    btn.title = 'Switch to dots';
-    set('zoom-badge', 'Heatmap view');
-  }
-}
+const OFFLINE_MS  = 75 * 60 * 1000;
+let heatLayer     = null;
+let dotGroup      = null;
+let allPoints     = [];       // all devices from server
+let activeAppId   = 'all';   // current app filter
+let knownApps     = [];       // [{ app_id, app_name, device_count }]
+let showDotView   = localStorage.getItem('map_layer') !== 'heat';
 
 // ── FETCH ──────────────────────────────────────────────────────────────────────
 async function fetchAll() {
@@ -493,21 +411,31 @@ async function fetchAll() {
   try {
     const headers = { 'x-api-key': DASH_KEY };
     const base    = WORKER_URL.replace(/\/$/,'');
-    const [stats, devices] = await Promise.all([
-      fetch(base + '/stats',   { headers }).then(r => { if(!r.ok) throw new Error('stats '+r.status); return r.json(); }),
-      fetch(base + '/devices', { headers }).then(r => { if(!r.ok) throw new Error('devices '+r.status); return r.json(); }),
+    const appQ    = activeAppId !== 'all' ? `?app_id=${encodeURIComponent(activeAppId)}` : '';
+
+    const [stats, devices, apps] = await Promise.all([
+      fetch(base + '/stats'   + appQ, { headers }).then(r => { if(!r.ok) throw new Error('stats '+r.status); return r.json(); }),
+      fetch(base + '/devices' + appQ, { headers }).then(r => { if(!r.ok) throw new Error('devices '+r.status); return r.json(); }),
+      fetch(base + '/apps',           { headers }).then(r => r.ok ? r.json() : []),
     ]);
+
+    knownApps = apps;
+    renderAppBar(apps);
     renderStats(stats);
+
     const now = Date.now();
     allPoints = devices.map(d => ({
-      lat: d.latitude, lng: d.longitude,
-      is_online:  (now - new Date(d.last_ping).getTime()) < OFFLINE_MS,
-      status:     d.status,
-      device_id:  d.device_id,
-      store_name: d.store_name,
-      last_ping:  d.last_ping,
+      lat:       d.latitude,
+      lng:       d.longitude,
+      is_online: (now - new Date(d.last_ping).getTime()) < OFFLINE_MS,
+      status:    d.status,
+      device_id: d.device_id,
+      app_id:    d.app_id,
+      store_name:d.store_name,
+      last_ping: d.last_ping,
     }));
-    updateMapLayer();
+
+    applyLayer();
     setSyncBadge('Synced ' + new Date().toLocaleTimeString());
   } catch(e) {
     setSyncBadge('⚠ ' + e.message);
@@ -517,7 +445,109 @@ async function fetchAll() {
 function showUnconfigured() {
   set('s-online','—'); set('s-offline','—'); set('s-new','—');
   allPoints = []; removeHeat(); removeDots();
-  setSyncBadge('Tap ⚙ to connect');
+  setSyncBadge('Tap ⚙ to connect your Worker');
+}
+
+// ── APP BAR ────────────────────────────────────────────────────────────────────
+function renderAppBar(apps) {
+  const bar = document.getElementById('app-bar');
+  if (!apps || apps.length === 0) { bar.classList.remove('visible'); return; }
+
+  bar.classList.add('visible');
+  bar.innerHTML = '';
+
+  // "All" tab
+  const allTab = makeTab('all', 'All', null);
+  bar.appendChild(allTab);
+
+  // One tab per app
+  apps.forEach(app => {
+    const tab = makeTab(app.app_id, app.app_name, app.device_count);
+    bar.appendChild(tab);
+  });
+}
+
+function makeTab(app_id, label, count) {
+  const tab = document.createElement('button');
+  tab.className = 'app-tab' + (app_id === activeAppId ? ' active' : '');
+  tab.dataset.appId = app_id;
+
+  // Name span — double-click to rename (not for "All" tab)
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = label;
+  tab.appendChild(nameSpan);
+
+  if (count !== null) {
+    const countSpan = document.createElement('span');
+    countSpan.className = 'app-tab-count';
+    countSpan.textContent = fmt(count);
+    tab.appendChild(countSpan);
+  }
+
+  // Single click: switch filter
+  tab.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT') return; // ignore clicks on rename input
+    switchApp(app_id);
+  });
+
+  // Double click: inline rename (not for "All" tab)
+  if (app_id !== 'all') {
+    tab.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      startRename(tab, nameSpan, app_id, label);
+    });
+    tab.title = 'Click to filter · Double-click to rename';
+  }
+
+  return tab;
+}
+
+function startRename(tab, nameSpan, app_id, currentName) {
+  const input = document.createElement('input');
+  input.className = 'app-tab-input';
+  input.value     = currentName;
+  input.maxLength = 30;
+  tab.replaceChild(input, nameSpan);
+  input.focus();
+  input.select();
+
+  const finish = async () => {
+    const newName = input.value.trim() || currentName;
+    // Optimistic UI update
+    nameSpan.textContent = newName;
+    tab.replaceChild(nameSpan, input);
+
+    if (newName !== currentName && WORKER_URL) {
+      try {
+        await fetch(WORKER_URL.replace(/\/$/,'') + '/apps/' + encodeURIComponent(app_id), {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', 'x-api-key': DASH_KEY },
+          body: JSON.stringify({ app_name: newName }),
+        });
+        // Update local cache
+        const app = knownApps.find(a => a.app_id === app_id);
+        if (app) app.app_name = newName;
+        setSyncBadge('Renamed → ' + newName);
+      } catch(e) {
+        setSyncBadge('⚠ Rename failed');
+      }
+    }
+  };
+
+  input.addEventListener('blur',  finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
+  });
+}
+
+function switchApp(app_id) {
+  activeAppId = app_id;
+  // Update active state on tabs
+  document.querySelectorAll('.app-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.appId === app_id);
+  });
+  fetchAll();
 }
 
 // ── STATS ──────────────────────────────────────────────────────────────────────
@@ -527,16 +557,32 @@ function renderStats(s) {
   set('s-new',     fmt(s.new_this_month));
 }
 
-// ── MAP LAYERS ─────────────────────────────────────────────────────────────────
-function updateMapLayer() { applyLayer(); }
+// ── LAYER TOGGLE ───────────────────────────────────────────────────────────────
+function toggleLayer() {
+  showDotView = !showDotView;
+  localStorage.setItem('map_layer', showDotView ? 'dot' : 'heat');
+  applyLayer();
+}
+function applyLayer() {
+  document.getElementById('layer-icon-dot').style.display  = showDotView ? 'block' : 'none';
+  document.getElementById('layer-icon-heat').style.display = showDotView ? 'none'  : 'block';
+  document.getElementById('layer-btn').title = showDotView ? 'Switch to heatmap' : 'Switch to dots';
+  if (showDotView) {
+    removeHeat(); showDots(allPoints);
+    set('zoom-badge', 'Dot view — tap a dot for info');
+  } else {
+    removeDots(); showHeatmap(allPoints);
+    set('zoom-badge', 'Heatmap view');
+  }
+}
 
+// ── MAP LAYERS ─────────────────────────────────────────────────────────────────
 function showHeatmap(pts) {
   removeHeat();
   if (!pts.length) return;
   heatLayer = L.heatLayer(
     pts.map(p => [p.lat, p.lng, p.is_online ? 1.0 : 0.3]),
-    { radius:35, blur:25, maxZoom:DOT_ZOOM - 1,
-      gradient:{ 0.0:'#22c55e', 0.5:'#eab308', 1.0:'#ef4444' } }
+    { radius:35, blur:25, gradient:{'0.0':'#22c55e','0.5':'#eab308','1.0':'#ef4444'} }
   ).addTo(map);
 }
 
@@ -544,8 +590,8 @@ function showDots(pts) {
   removeDots();
   if (!pts.length) return;
   dotGroup = L.layerGroup();
-  // Sort: offline first, online last → online renders on top
-  const sorted = [...pts].sort((a, b) => a.is_online - b.is_online);
+  // Offline first, online last → online renders on top
+  const sorted = [...pts].sort((a,b) => a.is_online - b.is_online);
   sorted.forEach(p => {
     const online = p.is_online;
     const color  = online ? '#22c55e' : '#6b7280';
@@ -554,36 +600,34 @@ function showDots(pts) {
     const half   = size / 2;
     const icon   = L.divIcon({
       className: '',
-      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};
-               border:2px solid rgba(255,255,255,.6);box-shadow:${glow};cursor:pointer"></div>`,
+      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.6);box-shadow:${glow};cursor:pointer"></div>`,
       iconSize:[size,size], iconAnchor:[half,half], popupAnchor:[0,-half]
     });
-    const ago    = p.last_ping ? timeAgo(new Date(p.last_ping).getTime()) : '—';
-    const popup  = `<div class="pop">
+    const ago   = p.last_ping ? timeAgo(new Date(p.last_ping).getTime()) : '—';
+    const appLabel = knownApps.find(a => a.app_id === p.app_id)?.app_name || p.app_id || '—';
+    const popup = `<div class="pop">
       <div class="pop-name">${p.store_name || p.device_id || 'Unknown'}</div>
       <div class="pop-row">ID: <span>${p.device_id || '—'}</span></div>
+      <div class="pop-row">App: <span>${appLabel}</span></div>
       <div class="pop-row">Last ping: <span>${ago}</span></div>
       <div class="pop-status ${online?'online':'offline'}">${online?'● ONLINE':'○ OFFLINE'}</div>
     </div>`;
-    L.marker([p.lat, p.lng], { icon }).bindPopup(popup, { maxWidth:200 }).addTo(dotGroup);
+    L.marker([p.lat,p.lng],{icon}).bindPopup(popup,{maxWidth:200}).addTo(dotGroup);
   });
   dotGroup.addTo(map);
 }
 
-function removeHeat() { if (heatLayer) { map.removeLayer(heatLayer); heatLayer=null; } }
-function removeDots()  { if (dotGroup)  { map.removeLayer(dotGroup);  dotGroup=null;  } }
+function removeHeat() { if(heatLayer){map.removeLayer(heatLayer);heatLayer=null;} }
+function removeDots()  { if(dotGroup) {map.removeLayer(dotGroup); dotGroup=null;}  }
 
-// ── LOCATE ME ──────────────────────────────────────────────────────────────────
+// ── LOCATE ─────────────────────────────────────────────────────────────────────
 function locateMe() {
   if (!navigator.geolocation) { setSyncBadge('⚠ GPS not available'); return; }
   setSyncBadge('Locating...');
   navigator.geolocation.getCurrentPosition(
-    pos => {
-      map.setView([pos.coords.latitude, pos.coords.longitude], 11, { animate: true });
-      setSyncBadge('📍 Zoomed to your location');
-    },
-    () => setSyncBadge('⚠ Location denied'),
-    { enableHighAccuracy: false, timeout: 8000 }
+    pos => { map.setView([pos.coords.latitude, pos.coords.longitude], 11, {animate:true}); setSyncBadge('📍 Zoomed to your location'); },
+    ()  => setSyncBadge('⚠ Location denied'),
+    { enableHighAccuracy:false, timeout:8000 }
   );
 }
 
@@ -594,36 +638,35 @@ function openModal() {
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
-function handleModalClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+function handleModalClick(e) { if(e.target===document.getElementById('modal')) closeModal(); }
 function saveConfig() {
   WORKER_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
   DASH_KEY   = document.getElementById('cfg-key').value.trim();
   localStorage.setItem('pos_worker_url', WORKER_URL);
   localStorage.setItem('pos_dash_key',   DASH_KEY);
-  closeModal();
-  fetchAll();
+  closeModal(); fetchAll();
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
-function set(id, txt) { const el=document.getElementById(id); if(el) el.textContent=txt; }
-function setSyncBadge(txt) { set('sync-badge', txt); }
-function fmt(n) {
-  if (n===undefined||n===null) return '—';
-  if (n>=1000000) return (n/1000000).toFixed(1)+'M';
-  if (n>=1000)    return (n/1000).toFixed(1)+'K';
+function set(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt;}
+function setSyncBadge(txt){set('sync-badge',txt);}
+function fmt(n){
+  if(n===undefined||n===null)return'—';
+  if(n>=1000000)return(n/1000000).toFixed(1)+'M';
+  if(n>=1000)return(n/1000).toFixed(1)+'K';
   return String(n);
 }
-function timeAgo(ts) {
-  const s = Math.floor((Date.now()-ts)/1000);
-  if (s<60)    return s+'s ago';
-  if (s<3600)  return Math.floor(s/60)+'m ago';
-  if (s<86400) return Math.floor(s/3600)+'h ago';
+function timeAgo(ts){
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60)return s+'s ago';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
   return Math.floor(s/86400)+'d ago';
 }
 
-// ── AUTO REFRESH ───────────────────────────────────────────────────────────────
+// ── BOOT ───────────────────────────────────────────────────────────────────────
 fetchAll();
-setInterval(fetchAll, 60 * 1000);
+setInterval(fetchAll, 60000);
 </script>
 </body>
 </html>
