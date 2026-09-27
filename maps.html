@@ -363,8 +363,8 @@ body.dark {
 // ── THEME ──────────────────────────────────────────────────────────────────────
 let isDark = localStorage.getItem('map_theme') !== 'light';
 const TILES = {
-  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_4001_1_6d4e9176a56b9a6c531874ab',
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_4001_1_6d4e9176a56b9a6c531874ab',
 };
 function applyTheme() {
   document.body.className = isDark ? 'dark' : 'light';
