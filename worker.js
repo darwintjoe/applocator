@@ -9,6 +9,7 @@
  *   GET  /devices        ← all device locations, optional ?app_id=
  *   GET  /apps           ← list all known apps with names
  *   PATCH /apps/:app_id  ← rename an app
+ *   GET  /last-seen      ← single device timestamps, ?device_id= (Bearer LICENSE_READ_KEY)
  *   GET  /health         ← no auth
  */
 
@@ -21,7 +22,7 @@ export default {
     const cors = {
       'Access-Control-Allow-Origin':  '*',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
+      'Access-Control-Allow-Headers': 'Content-Type, x-api-key, Authorization',
     };
     if (method === 'OPTIONS') return new Response(null, { headers: cors });
 
@@ -32,6 +33,12 @@ export default {
 
     const isDevice    = () => request.headers.get('x-api-key') === env.DEVICE_KEY;
     const isDashboard = () => request.headers.get('x-api-key') === env.DASHBOARD_KEY;
+    // Separate read-only secret — never accepts DEVICE_KEY / DASHBOARD_KEY
+    const isLicenseRead = () => {
+      if (!env.LICENSE_READ_KEY) return false;
+      const auth = request.headers.get('Authorization') || '';
+      return auth.startsWith('Bearer ') && auth.slice(7) === env.LICENSE_READ_KEY;
+    };
 
     // ── DEVICE ROUTES ──────────────────────────────────────────────────────────
     if (method === 'POST' && path === '/register') {
@@ -60,6 +67,13 @@ export default {
       if (!isDashboard()) return json({ error: 'Unauthorized' }, 401);
       const app_id = decodeURIComponent(path.slice(6));
       return handleRenameApp(request, app_id, env, json);
+    }
+
+    // ── LICENSE SERVER ─────────────────────────────────────────────────────────
+    if (method === 'GET' && path === '/last-seen') {
+      if (!env.LICENSE_READ_KEY) return json({ error: 'not_configured' }, 503);
+      if (!isLicenseRead()) return json({ error: 'Unauthorized' }, 401);
+      return handleLastSeen(url, env, json);
     }
 
     // ── HEALTH ─────────────────────────────────────────────────────────────────
@@ -180,6 +194,27 @@ async function handleDevices(url, env, json) {
   `).bind(ts75m, ts30d, ts60d).all();
 
   return json(results || []);
+}
+
+// ── LAST SEEN (license read-only) ───────────────────────────────────────────────
+// One row by primary key. Read only. Timestamps returned exactly as stored.
+async function handleLastSeen(url, env, json) {
+  const device_id = url.searchParams.get('device_id');
+  if (!device_id) return json({ error: 'device_id required' }, 400);
+  if (device_id.length > 64 || !/^[A-Za-z0-9_-]+$/.test(device_id)) {
+    return json({ error: 'invalid device_id' }, 400);
+  }
+
+  const row = await env.DB.prepare(
+    `SELECT device_id, last_ping, first_seen FROM devices WHERE device_id = ?1`
+  ).bind(device_id).first();
+  if (!row) return json({ error: 'unknown_device' }, 404);
+
+  return json({
+    device_id:  row.device_id,
+    last_seen:  row.last_ping,
+    first_seen: row.first_seen,
+  });
 }
 
 // ── APPS ────────────────────────────────────────────────────────────────────────

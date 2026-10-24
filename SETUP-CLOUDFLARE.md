@@ -86,6 +86,12 @@ applocatordevice123
 wrangler secret put DASHBOARD_KEY
 applocatordashboard123
 # Prompt: Enter a secret value → type your key → Enter
+
+# Read-only key for the licensing server (GET /last-seen only)
+wrangler secret put LICENSE_READ_KEY
+# Prompt: Enter a secret value → type your key → Enter
+# Use a different value than DEVICE_KEY / DASHBOARD_KEY — this one only reads
+# timestamps and cannot register, ping, or access the dashboard.
 ```
 
 Generate strong keys easily:
@@ -166,6 +172,13 @@ curl https://pos-coverage.YOUR-SUBDOMAIN.workers.dev/devices \
   -H "x-api-key: YOUR_DASHBOARD_KEY"
 
 # Expected: [{"device_id":"TEST-001","store_name":"Test Store",...}]
+
+# Check last-seen (licensing server, read-only key)
+curl "https://pos-coverage.YOUR-SUBDOMAIN.workers.dev/last-seen?device_id=TEST-001" \
+  -H "Authorization: Bearer YOUR_LICENSE_READ_KEY"
+
+# Expected: {"device_id":"TEST-001","last_seen":"2026-...","first_seen":"2026-..."}
+# last_seen is the stored last_ping value, unchanged. The caller decides staleness.
 ```
 
 ---
